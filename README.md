@@ -15,7 +15,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 7. Android ony - Abillity to invert source image to scan natively unsupported inverted barcodes, but at a performance cost.
 
 ## Usage
-1. Install Nuget package,
+1. Install [Nuget package](https://www.nuget.org/packages/BarcodeScanning.Native.Maui),
 2. Initialize the plugin in your `MauiProgram.cs`:
 
     ```csharp
