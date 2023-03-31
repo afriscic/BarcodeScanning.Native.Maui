@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:barcode="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
+             x:Class="BarcodeScanning.Test.MainPage"
+             Title="BarcodeScanning">
+
+    <AbsoluteLayout>
+        <barcode:CameraView AbsoluteLayout.LayoutFlags="All"
+                            AbsoluteLayout.LayoutBounds="0,0,1,1"
+                            OnDetectionFinished="CameraView_OnDetectionFinished"
+                            CaptureQuality="High"
+                            ForceInverted="True"
+                            TapToFocusEnabled="True"
+                            BarcodeSymbologies="All"
+                            x:Name="Barcode"/>
+        
+        <GraphicsView AbsoluteLayout.LayoutFlags="All"
+                      AbsoluteLayout.LayoutBounds="0,0,1,1"
+                      x:Name="Graphics"
+                      InputTransparent="True"/>
+        
+        <Grid ColumnDefinitions="*, *, *, *, *" AbsoluteLayout.LayoutFlags="All" AbsoluteLayout.LayoutBounds="0,0,1,0.1">
+            <Picker x:Name="Quality" Title="Quality" Grid.Column="2" BackgroundColor="Transparent"  WidthRequest="45" HeightRequest="45" SelectedIndexChanged="Quality_SelectedIndexChanged"/>
+
+            <Button Text="C" Grid.Column="0" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="CameraButton_Clicked"/>
+            <Button Text="T" Grid.Column="1" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="TorchButton_Clicked"/>
+            <Button Text="Q" Grid.Column="2" WidthRequest="50" HeightRequest="50" CornerRadius="25" InputTransparent="True"/>
+            <Button Text="V" Grid.Column="3" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="VibrateButton_Clicked"/>
+            <Button Text="P" Grid.Column="4" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="PauseButton_Clicked"/>
+        </Grid>
+    </AbsoluteLayout>
+
+
+</ContentPage>
