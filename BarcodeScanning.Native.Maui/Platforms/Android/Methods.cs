@@ -1,8 +1,7 @@
 ﻿using Android.Gms.Extensions;
 using Android.Graphics;
 using Android.Runtime;
-using AndroidX.Camera.View;
-using BarcodeScanning.Native.Maui.Platforms.Android;
+using AndroidX.Camera.View.Transform;
 using Java.Util;
 using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
@@ -94,7 +93,7 @@ internal class Methods
         return formats;
     }
 
-    internal static HashSet<BarcodeResult> ProcessBarcodeResult(Java.Lang.Object result, CoordinateScale scale = null)
+    internal static HashSet<BarcodeResult> ProcessBarcodeResult(Java.Lang.Object result, CoordinateTransform transform = null)
     {
         var resultList = new HashSet<BarcodeResult>();
 
@@ -109,14 +108,7 @@ internal class Methods
             var mapped = barcode.JavaCast<Barcode>();
             var rectF = mapped.BoundingBox.AsRectF();
 
-            if (scale is not null)
-            {
-                rectF.Left *= scale.Scale;
-                rectF.Top *= scale.Scale;
-                rectF.Right *= scale.Scale;
-                rectF.Bottom *= scale.Scale;
-                rectF.Offset(-scale.TranslX, -scale.TranslY);
-            }
+            transform?.MapRect(rectF);
 
             resultList.Add(new BarcodeResult()
             {
@@ -129,46 +121,5 @@ internal class Methods
             });
         }
         return resultList;
-    }
-
-    /// <summary>
-    /// https://github.com/giuseppesorce/cameraxscan/blob/master/app/src/main/java/com/gs/scancamerax/BarcodeOverlay.kt
-    /// </summary>
-    internal static CoordinateScale GetScale(Image image, PreviewView view)
-    {
-        float pw;
-        float ph;
-        float vw = view.Width;
-        float vh = view.Height;
-
-        if (DeviceDisplay.Current.MainDisplayInfo.Orientation == DisplayOrientation.Portrait)
-        {
-            pw = image.Height;
-            ph = image.Width;
-        }
-        else
-        {
-            pw = image.Width;
-            ph = image.Height;
-        }
-
-        if (pw / ph > vw / vh)
-        {
-            return new CoordinateScale()
-            {
-                Scale = vh / ph,
-                TranslX = ((pw * vh / ph) - vw) / 2,
-                TranslY = 0
-            };
-        }
-        else
-        {
-            return new CoordinateScale()
-            {
-                Scale = vw / pw,
-                TranslX = 0,
-                TranslY = ((ph * vw / pw) - vh) / 2
-            };
-        }
     }
 }

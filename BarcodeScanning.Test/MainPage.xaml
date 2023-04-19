@@ -10,7 +10,7 @@
                             AbsoluteLayout.LayoutBounds="0,0,1,1"
                             OnDetectionFinished="CameraView_OnDetectionFinished"
                             CaptureQuality="High"
-                            ForceInverted="True"
+                            ForceInverted="False"
                             TapToFocusEnabled="True"
                             BarcodeSymbologies="All"
                             x:Name="Barcode"/>

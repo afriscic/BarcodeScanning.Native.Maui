@@ -1,6 +1,7 @@
 ﻿using Android.Util;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
+using AndroidX.Camera.View.Transform;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
@@ -28,11 +29,18 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             if (proxy is null || proxy.Image is null || _cameraView.PauseScanning)
                 return;
 
-            var scale = Methods.GetScale(proxy.Image, _previewView);
+            var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
+            var source = new ImageProxyTransformFactory
+            {
+                UsingRotationDegrees = true
+            }
+            .GetOutputTransform(proxy);
+            var coordinateTransform = new CoordinateTransform(source, target);
+
             var image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
             var results = await ToAwaitableTask(_barcodeScanner.Process(image));
 
-            var _barcodeResults = Methods.ProcessBarcodeResult(results, scale);
+            var _barcodeResults = Methods.ProcessBarcodeResult(results, coordinateTransform);
 
             if (_cameraView.ForceInverted)
             {
@@ -40,7 +48,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
                 image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
                 results = await ToAwaitableTask(_barcodeScanner.Process(image));
 
-                _barcodeResults.UnionWith(Methods.ProcessBarcodeResult(results, scale));
+                _barcodeResults.UnionWith(Methods.ProcessBarcodeResult(results, coordinateTransform));
             }
 
             if (_barcodeResults is not null && _cameraView is not null)
@@ -66,13 +74,9 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         {
             proxy?.Close();
         }
-        catch (ObjectDisposedException) 
+        catch (Exception) 
         {
 
-        }
-        catch (ArgumentException)
-        {
-            //Ignore argument exception, it will be thrown if BarcodeAnalyzer get disposed during processing
         }
     }
 

@@ -85,13 +85,14 @@
             {
                 if (barcodeResults is not null && barcodeResults.Count > 0)
                 {
+                    canvas.StrokeSize = 15;
+                    canvas.StrokeColor = Colors.Red;
+                    var scale = 1 / canvas.DisplayScale;
+                    canvas.Scale(scale, scale);
+
                     foreach (var barcode in barcodeResults)
                     {
-                        var drawRect = new RectF(barcode.BoundingBox.X / canvas.DisplayScale, barcode.BoundingBox.Y / canvas.DisplayScale, barcode.BoundingBox.Width / canvas.DisplayScale, barcode.BoundingBox.Height / canvas.DisplayScale);
-
-                        canvas.StrokeColor = Colors.Red;
-                        canvas.StrokeSize = 6;
-                        canvas.DrawRectangle(drawRect);
+                        canvas.DrawRectangle(barcode.BoundingBox);
                     }
                 }
             }

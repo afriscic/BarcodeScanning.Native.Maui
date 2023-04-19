@@ -108,6 +108,7 @@ public partial class CameraViewHandler
         if (_cameraController is not null)
             _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(TargetResolution());
     }
+
     private void UpdateTorch()
     {
         if (_cameraController is not null) 
@@ -140,6 +141,5 @@ public partial class CameraViewHandler
                 _ => throw new ArgumentOutOfRangeException(nameof(CaptureQuality))
             };
         }
-
     }
 }
