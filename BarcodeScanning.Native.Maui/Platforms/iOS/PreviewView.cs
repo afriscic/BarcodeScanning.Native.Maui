@@ -27,7 +27,7 @@ internal class PreviewView : UIView
             _ => AVCaptureVideoOrientation.Portrait
         };
 
-        if (_previewLayer.Connection.SupportsVideoOrientation)
+        if (_previewLayer.Connection is not null && _previewLayer.Connection.SupportsVideoOrientation)
             _previewLayer.Connection.VideoOrientation = videoOrientation;
     }
 }
