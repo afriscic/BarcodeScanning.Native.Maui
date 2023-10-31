@@ -134,13 +134,16 @@ public partial class CameraViewHandler
                 AVMediaTypes.Video,
                 VirtualView.CameraFacing == CameraFacing.Front ? AVCaptureDevicePosition.Front : AVCaptureDevicePosition.Back);
 
-            if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
+            if (_captureDevice is not null)
+            {
+                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
+                    CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
 
-            _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+                _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+            }
 
-            if (_captureSession.CanAddInput(_captureInput))
-                _captureSession.AddInput(_captureInput);
+            if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
+			    _captureSession.AddInput(_captureInput);
 
             _captureSession.CommitConfiguration();
         }
