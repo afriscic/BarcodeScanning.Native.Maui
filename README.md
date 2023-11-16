@@ -58,7 +58,7 @@ An example can be found in [BarcodeScanning.Test](https://github.com/afriscic/Ba
 1D: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, GS1 DataBar, ITF, UPC-E; 2D: Aztec, Data Matrix, MicroPDF417, MicroQR, PDF417, QR Code
 
 ## Bindable properties
-A list of bindable properties with descriptions can be found in [CameraView.cs](https://github.com/afriscic/BarcodeScanning.Native.Maui/blob/master/BarcodeScanning.Native.Maui/CameraView.cs) interface source file.
+A list of bindable properties with descriptions can be found in [CameraView.cs](https://github.com/afriscic/BarcodeScanning.Native.Maui/blob/master/BarcodeScanning.Native.Maui/CameraView.cs) source file.
 
 ## TODO Windows and macOS support
 Windows and macOS are currently unsupported, but support can be added in the future. Vision framework is compatible with macOS so this implementation wouldn't be difficult. For Windows, barcode detection could be supported through [Zxing.Net](https://github.com/micjahn/ZXing.Net) project.
