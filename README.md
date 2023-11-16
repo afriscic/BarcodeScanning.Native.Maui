@@ -41,6 +41,10 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     <key>NSCameraUsageDescription</key>
     <string>Enable camera for barcode scanning.</string>
     ```
+    And ask for permision from user in your code:
+    ```csharp
+    await Methods.AskForRequiredPermissionAsync();
+    ```
 4. In XAML, add correct namespace, for example:
     ```xaml
     xmlns:scanner="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
