@@ -35,7 +35,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             if (sampleBuffer is null || _cameraView.PauseScanning)
                 return;
 
-            _sequenceRequestHandler.Perform(new VNRequest[] { _barcodeRequest }, sampleBuffer, out _);
+            _sequenceRequestHandler.Perform([_barcodeRequest], sampleBuffer, out _);
 
             if (_barcodeResults is not null && _cameraView is not null)
                 _cameraView.DetectionFinished(_barcodeResults);

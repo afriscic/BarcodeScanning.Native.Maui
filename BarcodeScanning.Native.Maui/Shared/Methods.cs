@@ -2,7 +2,7 @@
 
 public static class Methods
 {
-    public static async Task<bool> AskForRequiredPermission()
+    public static async Task<bool> AskForRequiredPermissionAsync()
     {
         try
         {
@@ -22,12 +22,12 @@ public static class Methods
         return false;
     }
 
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
+    public static Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
     {
        #if IOS
-       return await Platforms.iOS.Methods.ScanFromImage(imageArray);
+       return Platforms.iOS.Methods.ScanFromImage(imageArray);
        #elif ANDROID
-       return await Platforms.Android.Methods.ScanFromImage(imageArray);
+       return Platforms.Android.Methods.ScanFromImage(imageArray);
        #endif
 
     }

@@ -21,7 +21,7 @@ internal class Methods
         });
         var handler = new VNImageRequestHandler(image.CGImage, new NSDictionary());
         
-        await Task.Run(() => handler.Perform(new VNRequest[] { barcodeRequest }, out _));
+        await Task.Run(() => handler.Perform([barcodeRequest], out _));
         return ProcessBarcodeResult(observations);
     }
 

@@ -20,7 +20,7 @@
 
         protected override async void OnAppearing()
         {
-            await Methods.AskForRequiredPermission();
+            await Methods.AskForRequiredPermissionAsync();
             base.OnAppearing();
 
             Barcode.CameraEnabled = true;
