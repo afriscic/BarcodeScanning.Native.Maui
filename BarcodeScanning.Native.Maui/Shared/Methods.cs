@@ -22,7 +22,7 @@ public static class Methods
         return false;
     }
 
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
     {
        #if IOS
        return await Platforms.iOS.Methods.ScanFromImage(imageArray);
