@@ -41,7 +41,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     <key>NSCameraUsageDescription</key>
     <string>Enable camera for barcode scanning.</string>
     ```
-    And ask for permision from user in your code:
+    And ask for permission from user in your code:
     ```csharp
     await Methods.AskForRequiredPermissionAsync();
     ```
