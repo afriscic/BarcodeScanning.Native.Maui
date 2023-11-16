@@ -9,11 +9,11 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     private readonly VNDetectBarcodesRequest _barcodeRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
-    private readonly ICameraView _cameraView;
+    private readonly CameraView _cameraView;
 
     private HashSet<BarcodeResult> _barcodeResults;
 
-    internal BarcodeAnalyzer(ICameraView cameraView, AVCaptureVideoPreviewLayer previewLayer)
+    internal BarcodeAnalyzer(CameraView cameraView, AVCaptureVideoPreviewLayer previewLayer)
     {
         _cameraView = cameraView;
         _previewLayer = previewLayer;
@@ -37,8 +37,8 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 
             _sequenceRequestHandler.Perform(new VNRequest[] { _barcodeRequest }, sampleBuffer, out _);
 
-            if (_barcodeResults is not null &&  _cameraView is not null)
-                _cameraView.DetectionFinished(_barcodeResults.ToHashSet());
+            if (_barcodeResults is not null && _cameraView is not null)
+                _cameraView.DetectionFinished(_barcodeResults);
         }
         catch (Exception)
         {

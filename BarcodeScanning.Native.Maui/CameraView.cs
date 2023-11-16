@@ -2,10 +2,11 @@
 
 namespace BarcodeScanning;
 
-public partial class CameraView : View, ICameraView
+public partial class CameraView : View
 {
     public static readonly BindableProperty OnDetectionFinishedCommandProperty = BindableProperty.Create(nameof(OnDetectionFinishedCommand)
-        , typeof(ICommand), typeof(CameraView)
+        , typeof(ICommand)
+        , typeof(CameraView)
         , null
         , defaultBindingMode: BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).OnDetectionFinishedCommand = (ICommand)newValue);
@@ -14,7 +15,6 @@ public partial class CameraView : View, ICameraView
         get => (ICommand)GetValue(OnDetectionFinishedCommandProperty);
         set => SetValue(OnDetectionFinishedCommandProperty, value);
     }
-
 
     public static readonly BindableProperty VibrationOnDetectedProperty = BindableProperty.Create(nameof(VibrationOnDetected)
         , typeof(bool)
@@ -34,7 +34,7 @@ public partial class CameraView : View, ICameraView
     public static readonly BindableProperty CameraEnabledProperty = BindableProperty.Create(nameof(CameraEnabled)
         , typeof(bool)
         , typeof(CameraView)
-        , true
+        , false
         , defaultBindingMode: BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).CameraEnabled = (bool)newValue);
     /// <summary>
@@ -91,7 +91,6 @@ public partial class CameraView : View, ICameraView
         get => (int)GetValue(PoolingIntervalProperty);
         set => SetValue(PoolingIntervalProperty, value);
     }
-
 
     public static readonly BindableProperty TorchOnProperty = BindableProperty.Create(nameof(TorchOn)
         , typeof(bool)
@@ -174,61 +173,74 @@ public partial class CameraView : View, ICameraView
 
     public event EventHandler<OnDetectionFinishedEventArg> OnDetectionFinished;
 
-    private readonly System.Timers.Timer poolingTimer;
-    private readonly HashSet<BarcodeResult> pooledResults;
+    private readonly System.Timers.Timer _poolingTimer;
+    private readonly HashSet<BarcodeResult> _pooledResults;
 
     public CameraView()
     {
         this.Unloaded += CameraView_Unloaded;
 
-        pooledResults = new();
-        poolingTimer = new()
+        _pooledResults = new();
+        _poolingTimer = new()
         {
             AutoReset = false
         };
-        poolingTimer.Elapsed += PoolingTimer_Elapsed;
+        _poolingTimer.Elapsed += PoolingTimer_Elapsed;
     }
 
-    void ICameraView.DetectionFinished(HashSet<BarcodeResult> barCodeResults)
+    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults)
     {
+        if (barCodeResults is null)
+            return;
+
         if (PoolingInterval > 0)
         {
-            if (!poolingTimer.Enabled)
+            if (!_poolingTimer.Enabled)
             {
-                poolingTimer.Interval = PoolingInterval;
-                poolingTimer.Start();
-                pooledResults.Clear();
+                _poolingTimer.Interval = PoolingInterval;
+                _poolingTimer.Start();
+                _pooledResults.Clear();
             }
 
             foreach (var result in barCodeResults)
             {
-                if (!pooledResults.Add(result))
+                if (!_pooledResults.Add(result))
                 {
-                    if (pooledResults.TryGetValue(result, out var currentResult))
-                    {
+                    if (_pooledResults.TryGetValue(result, out var currentResult))
                         currentResult.BoundingBox = result.BoundingBox;
-                    }
                 }
             }
         }
         else
         {
-            TriggerDetectionFinished(barCodeResults);
+            TriggerOnDetectionFinished(barCodeResults);
         }
     }
 
-    private void PoolingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e) => TriggerDetectionFinished(new HashSet<BarcodeResult>(pooledResults));
-
-    private void TriggerDetectionFinished(HashSet<BarcodeResult> barCodeResults)
+    private void PoolingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
     {
-        if (VibrationOnDetected && barCodeResults.Count > 0)
-            Vibration.Vibrate(200);
+        TriggerOnDetectionFinished(_pooledResults);
+    }
 
-        MainThread.BeginInvokeOnMainThread(() =>
+    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barCodeResults)
+    {
+        try
         {
-            OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barCodeResults });
-            OnDetectionFinishedCommand?.Execute(barCodeResults);
-        });
+            if (VibrationOnDetected)
+                Vibration.Vibrate();
+
+            var results = barCodeResults.ToHashSet();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = results });
+                if (OnDetectionFinishedCommand?.CanExecute(results) ?? false)
+                    OnDetectionFinishedCommand?.Execute(results);
+            });
+        }
+        catch (Exception)
+        {
+
+        }
     }
 
     /// <summary>

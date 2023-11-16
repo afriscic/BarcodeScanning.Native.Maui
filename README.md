@@ -17,7 +17,6 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 ## Usage
 1. Install [Nuget package](https://www.nuget.org/packages/BarcodeScanning.Native.Maui),
 2. Initialize the plugin in your `MauiProgram.cs`:
-
     ```csharp
     public static MauiApp CreateMauiApp()
     {
@@ -30,28 +29,25 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
         return builder.Build();
     }
     ```
-
 3. Add required permissions:
     #### Android
     Edit `AndroidManifest.xml` file (under the Platforms\Android folder) and add the following permissions inside of the `manifest` node:
-
-      ```xml
-      <uses-permission android:name="android.permission.CAMERA" />
-      ```
-
+    ```xml
+    <uses-permission android:name="android.permission.CAMERA" />
+    ```
     #### iOS
     Edit `info.plist` file (under the Platforms\iOS folder) and add the following permissions inside of the `dict` node:
-
-      ```xml
-      <key>NSCameraUsageDescription</key>
-      <string>Enable camera for barcode scanning.</string>
-      ```
-4. In XAML, add correct namespace:
-
-      ```xaml
-      xmlns:scanner="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
-      ```
-5. Listen to `OnDetectionFinished` event in Code-behind or bind `OnDetectionFinishedCommand` property to a Command in your ViewModel.
+    ```xml
+    <key>NSCameraUsageDescription</key>
+    <string>Enable camera for barcode scanning.</string>
+    ```
+4. In XAML, add correct namespace, for example:
+    ```xaml
+    xmlns:scanner="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
+    ```
+5. Set the `CameraEnabled` property to `true` in XAML, code behind or ViewModel to start the camera.
+6. Listen to `OnDetectionFinished` event in Code-behind or bind `OnDetectionFinishedCommand` property to a Command in your ViewModel.
+7. As a best practice set the `CameraEnabled` property to `false` in `OnDisappearing()` method override in your Page.
 
 An example can be found in [BarcodeScanning.Test](https://github.com/afriscic/BarcodeScanning.Native.Maui/tree/master/BarcodeScanning.Test) project.
 

@@ -16,6 +16,7 @@ public partial class CameraViewHandler
     private AVCaptureInput _captureInput;
     private DispatchQueue _queue;
     private PreviewView _previewView;
+    private UITapGestureRecognizer _uITapGestureRecognizer;
 
     protected override UIView CreatePlatformView()
     {
@@ -32,7 +33,10 @@ public partial class CameraViewHandler
             VideoGravity = AVLayerVideoGravity.ResizeAspectFill
         };
         _previewView = new PreviewView(_videoPreviewLayer);
-        _previewView.AddGestureRecognizer(new UITapGestureRecognizer(FocusOnTap));
+
+        _uITapGestureRecognizer = new UITapGestureRecognizer(() => FocusOnTap());
+        _previewView.AddGestureRecognizer(_uITapGestureRecognizer);
+
         return _previewView;
     }
 
@@ -134,13 +138,21 @@ public partial class CameraViewHandler
                 AVMediaTypes.Video,
                 VirtualView.CameraFacing == CameraFacing.Front ? AVCaptureDevicePosition.Front : AVCaptureDevicePosition.Back);
 
-            if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
+            if (_captureDevice is not null)
+            {
+                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
+                    CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
+                else
+                    CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus);
 
-            _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+                _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
 
-            if (_captureSession.CanAddInput(_captureInput))
-                _captureSession.AddInput(_captureInput);
+                if (_captureInput is not null)
+                {
+                    if (_captureSession.CanAddInput(_captureInput))
+                        _captureSession.AddInput(_captureInput);
+                }
+            }
 
             _captureSession.CommitConfiguration();
         }
@@ -152,14 +164,16 @@ public partial class CameraViewHandler
             CaptureDeviceLock(() => _captureDevice.TorchMode = VirtualView.TorchOn ? AVCaptureTorchMode.On : AVCaptureTorchMode.Off);
     }
 
-    private void FocusOnTap(UITapGestureRecognizer tapRecognizer)
+    private void FocusOnTap()
     {
         if (_captureDevice is not null && VirtualView.TapToFocusEnabled && _captureDevice.FocusPointOfInterestSupported)
         {
-            CaptureDeviceLock(() => _captureDevice.FocusPointOfInterest = _videoPreviewLayer.CaptureDevicePointOfInterestForPoint(tapRecognizer.LocationInView(_previewView)));
+            CaptureDeviceLock(() => _captureDevice.FocusPointOfInterest = _videoPreviewLayer.CaptureDevicePointOfInterestForPoint(_uITapGestureRecognizer.LocationInView(_previewView)));
 
             if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
                 CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
+            else
+                CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus);
         }
     }
 
@@ -171,8 +185,7 @@ public partial class CameraViewHandler
 
     private NSString GetCaptureSessionResolution()
     {
-        var captureQuality = VirtualView.CaptureQuality;
-        return captureQuality switch
+        return VirtualView.CaptureQuality switch
         {
             CaptureQuality.Lowest => AVCaptureSession.Preset352x288,
             CaptureQuality.Low => AVCaptureSession.Preset640x480,

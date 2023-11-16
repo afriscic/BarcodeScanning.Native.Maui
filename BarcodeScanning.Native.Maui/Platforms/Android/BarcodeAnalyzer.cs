@@ -1,22 +1,28 @@
-﻿using Android.Util;
+﻿using Android.Gms.Extensions;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
 using AndroidX.Camera.View.Transform;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
+using Size = Android.Util.Size;
+
 namespace BarcodeScanning.Platforms.Android;
 
 internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 {
+    public Size DefaultTargetResolution => Methods.TargetResolution(_cameraView.CaptureQuality);
+    public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemOriginal;
+
     private readonly IBarcodeScanner _barcodeScanner;
-    private readonly ICameraView _cameraView;
+    private readonly CameraView _cameraView;
     private readonly PreviewView _previewView;
 
-    internal BarcodeAnalyzer(ICameraView cameraView, PreviewView previewView)
+    internal BarcodeAnalyzer(CameraView cameraView, PreviewView previewView)
     {
         _cameraView = cameraView;
         _previewView = previewView;
+
         _barcodeScanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
             .Build());
@@ -38,7 +44,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             var coordinateTransform = new CoordinateTransform(source, target);
 
             var image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-            var results = await ToAwaitableTask(_barcodeScanner.Process(image));
+            var results = await _barcodeScanner.Process(image);
 
             var _barcodeResults = Methods.ProcessBarcodeResult(results, coordinateTransform);
 
@@ -46,27 +52,27 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             {
                 Methods.InvertLuminance(proxy.Image);
                 image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-                results = await ToAwaitableTask(_barcodeScanner.Process(image));
+                results = await _barcodeScanner.Process(image);
 
                 _barcodeResults.UnionWith(Methods.ProcessBarcodeResult(results, coordinateTransform));
             }
 
             if (_barcodeResults is not null && _cameraView is not null)
-                _cameraView.DetectionFinished(_barcodeResults.ToHashSet());
+                _cameraView.DetectionFinished(_barcodeResults);
         }
-        catch (Java.Lang.Exception ex)
+        catch (Java.Lang.Exception)
         {
-            Log.Debug(nameof(BarcodeAnalyzer), ex.ToString());
+
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Log.Debug(nameof(BarcodeAnalyzer), ex.ToString());
+
         }
         finally
         {
             SafeCloseImageProxy(proxy);
         }
-    }
+    } 
 
     private static void SafeCloseImageProxy(IImageProxy proxy)
     {
@@ -80,12 +86,4 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         }
     }
 
-    private static Task<Java.Lang.Object> ToAwaitableTask(global::Android.Gms.Tasks.Task task)
-    {
-        var taskCompletionSource = new TaskCompletionSource<Java.Lang.Object>();
-        var taskCompleteListener = new TaskCompleteListener(taskCompletionSource);
-        task.AddOnCompleteListener(taskCompleteListener);
-
-        return taskCompletionSource.Task;
-    }
 }

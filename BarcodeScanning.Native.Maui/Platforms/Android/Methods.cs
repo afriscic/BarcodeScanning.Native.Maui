@@ -7,7 +7,10 @@ using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
+
 using Image = Android.Media.Image;
+using Size = Android.Util.Size;
+
 
 namespace BarcodeScanning.Platforms.Android;
 
@@ -121,5 +124,33 @@ internal class Methods
             });
         }
         return resultList;
+    }
+
+    internal static Size TargetResolution(CaptureQuality captureQuality)
+    {
+        if (DeviceDisplay.MainDisplayInfo.Orientation == DisplayOrientation.Portrait)
+        {
+            return captureQuality switch
+            {
+                CaptureQuality.Lowest => new Size(288, 352),
+                CaptureQuality.Low => new Size(480, 640),
+                CaptureQuality.Medium => new Size(720, 1280),
+                CaptureQuality.High => new Size(1080, 1920),
+                CaptureQuality.Highest => new Size(2160, 3840),
+                _ => new Size(720, 1280)
+            };
+        }
+        else
+        {
+            return captureQuality switch
+            {
+                CaptureQuality.Lowest => new Size(352, 288),
+                CaptureQuality.Low => new Size(640, 480),
+                CaptureQuality.Medium => new Size(1280, 720),
+                CaptureQuality.High => new Size(1920, 1080),
+                CaptureQuality.Highest => new Size(3840, 2160),
+                _ => new Size(1280, 720)
+            };
+        }
     }
 }

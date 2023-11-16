@@ -80,7 +80,7 @@
 
         private class BarcodeDrawable : IDrawable
         {
-            public HashSet<BarcodeResult> barcodeResults;
+            public HashSet<BarcodeResult>? barcodeResults;
             public void Draw(ICanvas canvas, RectF dirtyRect)
             {
                 if (barcodeResults is not null && barcodeResults.Count > 0)

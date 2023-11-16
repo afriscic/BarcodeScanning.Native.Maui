@@ -8,18 +8,18 @@ using NativeCameraView = AndroidX.Camera.View.PreviewView;
 
 namespace BarcodeScanning;
 
-public partial class CameraViewHandler : ViewHandler<ICameraView, NativeCameraView>
+public partial class CameraViewHandler : ViewHandler<CameraView, NativeCameraView>
 {
-    public static readonly PropertyMapper<ICameraView, CameraViewHandler> CameraViewMapper = new()
+    public static readonly PropertyMapper<CameraView, CameraViewHandler> CameraViewMapper = new()
     {
-        [nameof(ICameraView.CameraEnabled)] = (handler, virtualView) => handler.HandleCameraEnabled(),
-        [nameof(ICameraView.CameraFacing)] = (handler, virtualView) => handler.UpdateCamera(),
-        [nameof(ICameraView.CaptureQuality)] = (handler, virtualView) => handler.UpdateResolution(),
-        [nameof(ICameraView.BarcodeSymbologies)] = (handler, virtualView) => handler.UpdateAnalyzer(),
-        [nameof(ICameraView.TorchOn)] = (handler, virtualView) => handler.UpdateTorch()
+        [nameof(CameraView.CameraEnabled)] = (handler, virtualView) => handler.HandleCameraEnabled(),
+        [nameof(CameraView.CameraFacing)] = (handler, virtualView) => handler.UpdateCamera(),
+        [nameof(CameraView.CaptureQuality)] = (handler, virtualView) => handler.UpdateResolution(),
+        [nameof(CameraView.BarcodeSymbologies)] = (handler, virtualView) => handler.UpdateAnalyzer(),
+        [nameof(CameraView.TorchOn)] = (handler, virtualView) => handler.UpdateTorch()
     };
 
-    public static readonly CommandMapper<ICameraView, CameraViewHandler> CameraCommandMapper = new()
+    public static readonly CommandMapper<CameraView, CameraViewHandler> CameraCommandMapper = new()
     {
     };
 

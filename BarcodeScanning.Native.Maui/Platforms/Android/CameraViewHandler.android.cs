@@ -4,7 +4,6 @@ using AndroidX.Camera.View;
 using AndroidX.Lifecycle;
 using BarcodeScanning.Platforms.Android;
 using Java.Util.Concurrent;
-using Exception = System.Exception;
 
 namespace BarcodeScanning;
 
@@ -42,8 +41,8 @@ public partial class CameraViewHandler
             else if (Platform.CurrentActivity is ILifecycleOwner)
                 lifecycleOwner = Platform.CurrentActivity as ILifecycleOwner;
 
-            if (lifecycleOwner == null)
-                throw new Exception("Unable to find lifecycle owner");
+            if (lifecycleOwner is null)
+                return;
 
             UpdateResolution();
             UpdateCamera();
@@ -106,40 +105,12 @@ public partial class CameraViewHandler
     private void UpdateResolution()
     {
         if (_cameraController is not null)
-            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(TargetResolution());
+            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Platforms.Android.Methods.TargetResolution(VirtualView.CaptureQuality));
     }
 
     private void UpdateTorch()
     {
         if (_cameraController is not null) 
             _cameraController.EnableTorch(VirtualView.TorchOn);
-    }
-
-    private Android.Util.Size TargetResolution()
-    {
-        if (DeviceDisplay.MainDisplayInfo.Orientation == DisplayOrientation.Portrait)
-        {
-            return VirtualView.CaptureQuality switch
-            {
-                CaptureQuality.Lowest => new Android.Util.Size(288, 352),
-                CaptureQuality.Low => new Android.Util.Size(480, 640),
-                CaptureQuality.Medium => new Android.Util.Size(720, 1280),
-                CaptureQuality.High => new Android.Util.Size(1080, 1920),
-                CaptureQuality.Highest => new Android.Util.Size(2160, 3840),
-                _ => throw new ArgumentOutOfRangeException(nameof(CaptureQuality))
-            };
-        }
-        else
-        {
-            return VirtualView.CaptureQuality switch
-            {
-                CaptureQuality.Lowest => new Android.Util.Size(352, 288),
-                CaptureQuality.Low => new Android.Util.Size(640, 480),
-                CaptureQuality.Medium => new Android.Util.Size(1280, 720),
-                CaptureQuality.High => new Android.Util.Size(1920, 1080),
-                CaptureQuality.Highest => new Android.Util.Size(3840, 2160),
-                _ => throw new ArgumentOutOfRangeException(nameof(CaptureQuality))
-            };
-        }
     }
 }

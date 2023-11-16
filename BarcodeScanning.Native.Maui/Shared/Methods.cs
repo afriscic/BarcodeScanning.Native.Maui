@@ -1,6 +1,6 @@
 ﻿namespace BarcodeScanning;
 
-public class Methods
+public static class Methods
 {
     public static async Task<bool> AskForRequiredPermission()
     {
