@@ -251,6 +251,13 @@ public partial class CameraView : View
     /// <param name="e"></param>
     private void CameraView_Unloaded(object sender, EventArgs e)
     {
-        this.Handler?.DisconnectHandler();
+        try // Avoid 'cannot access a disposed object' exception
+        {
+            this.Handler?.DisconnectHandler();
+        }
+        catch (Exception)
+        {
+
+        }
     }
 }
