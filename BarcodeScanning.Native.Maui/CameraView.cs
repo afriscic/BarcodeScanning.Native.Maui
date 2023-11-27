@@ -228,36 +228,29 @@ public partial class CameraView : View
         {
             if (VibrationOnDetected)
                 Vibration.Vibrate();
-
-            var results = barCodeResults.ToHashSet();
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = results });
-                if (OnDetectionFinishedCommand?.CanExecute(results) ?? false)
-                    OnDetectionFinishedCommand?.Execute(results);
-            });
         }
         catch (Exception)
         {
 
         }
+
+        var results = barCodeResults.ToHashSet();
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = results });
+            if (OnDetectionFinishedCommand?.CanExecute(results) ?? false)
+                OnDetectionFinishedCommand?.Execute(results);
+        });
     }
 
     /// <summary>
-    /// Due to DisconnectHandler has to be called manually...we do it when the Window unloaded
-    /// https://github.com/dotnet/maui/issues/3604
+    /// DisconnectHandler has to be called manually
+    /// https://learn.microsoft.com/en-us/dotnet/maui/user-interface/handlers/create?view=net-maui-8.0#native-view-cleanup
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
     private void CameraView_Unloaded(object sender, EventArgs e)
     {
-        try // Avoid 'cannot access a disposed object' exception
-        {
-            this.Handler?.DisconnectHandler();
-        }
-        catch (Exception)
-        {
-
-        }
+        this.Handler?.DisconnectHandler();
     }
 }

@@ -36,9 +36,8 @@ public partial class CameraViewHandler : ViewHandler<CameraView, NativeCameraVie
 
     protected override void DisconnectHandler(NativeCameraView nativeView)
     {
-        base.DisconnectHandler(nativeView);
-
         this.Stop();
-        nativeView.Dispose();
+
+        base.DisconnectHandler(nativeView);
     }
 }
