@@ -110,7 +110,7 @@ internal class Methods
         {
             var mapped = barcode.JavaCast<Barcode>();
             var rectF = mapped.BoundingBox.AsRectF();
-
+            
             transform?.MapRect(rectF);
 
             resultList.Add(new BarcodeResult()
@@ -126,13 +126,12 @@ internal class Methods
         return resultList;
     }
 
-    internal static Size TargetResolution(CaptureQuality captureQuality)
+    internal static Size TargetResolution(CaptureQuality? captureQuality)
     {
         if (DeviceDisplay.MainDisplayInfo.Orientation == DisplayOrientation.Portrait)
         {
             return captureQuality switch
             {
-                CaptureQuality.Lowest => new Size(288, 352),
                 CaptureQuality.Low => new Size(480, 640),
                 CaptureQuality.Medium => new Size(720, 1280),
                 CaptureQuality.High => new Size(1080, 1920),
@@ -144,7 +143,6 @@ internal class Methods
         {
             return captureQuality switch
             {
-                CaptureQuality.Lowest => new Size(352, 288),
                 CaptureQuality.Low => new Size(640, 480),
                 CaptureQuality.Medium => new Size(1280, 720),
                 CaptureQuality.High => new Size(1920, 1080),

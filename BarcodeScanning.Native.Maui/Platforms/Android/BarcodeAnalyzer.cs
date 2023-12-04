@@ -32,9 +32,9 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     {
         try
         {
-            if (proxy is null || proxy.Image is null || _cameraView.PauseScanning)
+            if (_cameraView.PauseScanning)
                 return;
-
+            
             var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
             var source = new ImageProxyTransformFactory
             {

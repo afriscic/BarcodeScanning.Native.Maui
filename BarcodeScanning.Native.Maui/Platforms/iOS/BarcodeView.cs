@@ -3,11 +3,11 @@ using UIKit;
 
 namespace BarcodeScanning.Platforms.iOS;
 
-internal class PreviewView : UIView
+internal class BarcodeView : UIView
 {
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
 
-    internal PreviewView(AVCaptureVideoPreviewLayer previewLayer) : base()
+    internal BarcodeView(AVCaptureVideoPreviewLayer previewLayer) : base()
     {
         _previewLayer = previewLayer;
         this.Layer.AddSublayer(_previewLayer);

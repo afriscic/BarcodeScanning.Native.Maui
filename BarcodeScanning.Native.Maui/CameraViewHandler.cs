@@ -3,7 +3,7 @@
 #if IOS
 using NativeCameraView = UIKit.UIView;
 #elif ANDROID
-using NativeCameraView = AndroidX.Camera.View.PreviewView;
+using NativeCameraView = AndroidX.CoordinatorLayout.Widget.CoordinatorLayout;
 #endif
 
 namespace BarcodeScanning;
@@ -30,14 +30,13 @@ public partial class CameraViewHandler : ViewHandler<CameraView, NativeCameraVie
     protected override void ConnectHandler(NativeCameraView nativeView)
     {
         base.ConnectHandler(nativeView);
-
         this.HandleCameraEnabled();
     }
 
     protected override void DisconnectHandler(NativeCameraView nativeView)
     {
         this.Stop();
-
         base.DisconnectHandler(nativeView);
+        this.DisposeView();
     }
 }

@@ -155,7 +155,7 @@ public partial class CameraView : View
         set => SetValue(CaptureQualityProperty, value);
     }
 
-    public static readonly BindableProperty BarcodeSymbologiesProperty = BindableProperty.Create(nameof(BarcodeFormats)
+    public static readonly BindableProperty BarcodeSymbologiesProperty = BindableProperty.Create(nameof(BarcodeSymbologies)
         , typeof(BarcodeFormats)
         , typeof(CameraView)
         , BarcodeFormats.All
@@ -199,7 +199,6 @@ public partial class CameraView : View
             {
                 _poolingTimer.Interval = PoolingInterval;
                 _poolingTimer.Start();
-                _pooledResults.Clear();
             }
 
             foreach (var result in barCodeResults)
@@ -220,13 +219,14 @@ public partial class CameraView : View
     private void PoolingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
     {
         TriggerOnDetectionFinished(_pooledResults);
+        _pooledResults.Clear();
     }
 
     private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barCodeResults)
     {
         try
         {
-            if (VibrationOnDetected)
+            if (VibrationOnDetected && barCodeResults.Count > 0)
                 Vibration.Vibrate();
         }
         catch (Exception)

@@ -9,7 +9,6 @@
         {
             InitializeComponent();
 
-            qualitys.Add("Lowest");
             qualitys.Add("Low");
             qualitys.Add("Medium");
             qualitys.Add("High");

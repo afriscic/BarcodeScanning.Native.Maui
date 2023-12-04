@@ -1,30 +1,41 @@
 ﻿using Android.Content;
+using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
+using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.Lifecycle;
 using BarcodeScanning.Platforms.Android;
 using Java.Util.Concurrent;
+using static Android.Views.ViewGroup;
 
 namespace BarcodeScanning;
 
 public partial class CameraViewHandler
 {
+    private BarcodeAnalyzer _barcodeAnalyzer;
+    private BarcodeView _barcodeView;
     private IExecutorService _cameraExecutor;
-    private PreviewView _previewView;
     private LifecycleCameraController _cameraController;
+    private PreviewView _previewView;
 
-    protected override PreviewView CreatePlatformView()
+    protected override CoordinatorLayout CreatePlatformView()
     {
+        DeviceDisplay.Current.MainDisplayInfoChanged += Current_MainDisplayInfoChanged;
+
         _cameraExecutor = Executors.NewSingleThreadExecutor();
         _cameraController = new LifecycleCameraController(Context)
         {
-            TapToFocusEnabled = VirtualView.TapToFocusEnabled
+            TapToFocusEnabled = VirtualView?.TapToFocusEnabled ?? false
         };
         _previewView = new PreviewView(Context)
         {
-            Controller = _cameraController
+            Controller = _cameraController,
+            LayoutParameters = new RelativeLayout.LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
-        return _previewView;
+        _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
+        _barcodeView = new BarcodeView(Context, _previewView);
+
+        return _barcodeView;
     }
 
     private void Start()
@@ -44,10 +55,11 @@ public partial class CameraViewHandler
             if (lifecycleOwner is null)
                 return;
 
-            UpdateResolution();
             UpdateCamera();
             UpdateAnalyzer();
             UpdateTorch();
+
+            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Platforms.Android.Methods.TargetResolution(VirtualView?.CaptureQuality));
 
             _cameraController.BindToLifecycle(lifecycleOwner);
         }
@@ -66,27 +78,26 @@ public partial class CameraViewHandler
     {
         //Delay to let transition animation finish
         //https://stackoverflow.com/a/67765792
-        if (VirtualView is not null)
-        {
-            if (VirtualView.CameraEnabled)
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(200);
-                    MainThread.BeginInvokeOnMainThread(Start);
-                });
-            else
-                MainThread.BeginInvokeOnMainThread(Stop);
-        }
+        if (VirtualView?.CameraEnabled ?? false)
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(100);
+                MainThread.BeginInvokeOnMainThread(Start);
+            });
+        else
+            Stop();
     }
 
     //TODO Implement camera-mlkit-vision
     //https://developer.android.com/reference/androidx/camera/mlkit/vision/MlKitAnalyzer
     private void UpdateAnalyzer()
     {
-        if (_cameraExecutor is not null && _cameraController is not null)
+        if (_cameraController is not null && _cameraExecutor is not null && VirtualView is not null && _previewView is not null)
         {
             _cameraController.ClearImageAnalysisAnalyzer();
-            _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, new BarcodeAnalyzer(VirtualView, _previewView));
+            _barcodeAnalyzer?.Dispose();
+            _barcodeAnalyzer = new BarcodeAnalyzer(VirtualView, _previewView);
+            _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
             _cameraController.ImageAnalysisBackpressureStrategy = ImageAnalysis.StrategyKeepOnlyLatest;
         }
     }
@@ -95,22 +106,60 @@ public partial class CameraViewHandler
     {
         if (_cameraController is not null)
         {
-            if (VirtualView.CameraFacing == CameraFacing.Front)
+            if (VirtualView?.CameraFacing == CameraFacing.Front)
                 _cameraController.CameraSelector = CameraSelector.DefaultFrontCamera;
             else
                 _cameraController.CameraSelector = CameraSelector.DefaultBackCamera;
         }
+
     }
 
     private void UpdateResolution()
     {
-        if (_cameraController is not null)
-            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Platforms.Android.Methods.TargetResolution(VirtualView.CaptureQuality));
+        Start();
     }
 
     private void UpdateTorch()
     {
-        if (_cameraController is not null) 
-            _cameraController.EnableTorch(VirtualView.TorchOn);
+        if (_cameraController is not null)
+            _cameraController.EnableTorch(VirtualView?.TorchOn ?? false);
+    }
+
+    private void DisposeView()
+    {
+        DeviceDisplay.Current.MainDisplayInfoChanged -= Current_MainDisplayInfoChanged;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(100);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _barcodeView?.Dispose();
+                _previewView?.Dispose();
+                _cameraController?.Dispose();
+                _barcodeAnalyzer?.Dispose();
+                _cameraExecutor?.Dispose();
+            });
+        });
+    }
+
+    private void Current_MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(100);
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    if (VirtualView.CameraEnabled)
+                        Start();
+                }
+                catch (Exception)
+                {
+                    DeviceDisplay.Current.MainDisplayInfoChanged -= Current_MainDisplayInfoChanged;
+                }
+            });
+        });
     }
 }

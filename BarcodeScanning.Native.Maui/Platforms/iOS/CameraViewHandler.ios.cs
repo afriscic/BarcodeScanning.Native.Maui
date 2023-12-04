@@ -15,29 +15,30 @@ public partial class CameraViewHandler
     private AVCaptureDevice _captureDevice;
     private AVCaptureInput _captureInput;
     private DispatchQueue _queue;
-    private PreviewView _previewView;
+    private BarcodeAnalyzer _barcodeAnalyzer;
+    private BarcodeView _barcodeView;
     private UITapGestureRecognizer _uITapGestureRecognizer;
 
     protected override UIView CreatePlatformView()
     {
-        _captureSession = new AVCaptureSession
-        {
-            SessionPreset = GetCaptureSessionResolution()
-        };
         _queue = new DispatchQueue("BarcodeScannerQueue", new DispatchQueue.Attributes()
         {
             QualityOfService = DispatchQualityOfService.UserInitiated
         });
+        _captureSession = new AVCaptureSession
+        {
+            SessionPreset = GetCaptureSessionResolution()
+        };
         _videoPreviewLayer = new AVCaptureVideoPreviewLayer(_captureSession)
         {
             VideoGravity = AVLayerVideoGravity.ResizeAspectFill
         };
-        _previewView = new PreviewView(_videoPreviewLayer);
+        _uITapGestureRecognizer = new UITapGestureRecognizer(FocusOnTap);
 
-        _uITapGestureRecognizer = new UITapGestureRecognizer(() => FocusOnTap());
-        _previewView.AddGestureRecognizer(_uITapGestureRecognizer);
+        _barcodeView = new BarcodeView(_videoPreviewLayer);
+        _barcodeView.AddGestureRecognizer(_uITapGestureRecognizer);
 
-        return _previewView;
+        return _barcodeView;
     }
 
     private void Start()
@@ -48,8 +49,8 @@ public partial class CameraViewHandler
                 _captureSession.StopRunning();
 
             UpdateCamera();
-            UpdateAnalyzer();
             UpdateResolution();
+            UpdateAnalyzer();
             UpdateTorch();
 
             _captureSession.StartRunning();
@@ -60,7 +61,8 @@ public partial class CameraViewHandler
     {
         if (_captureSession is not null)
         {
-            DisableTorchIfNeeded();
+            if (_captureDevice is not null && _captureDevice.TorchMode == AVCaptureTorchMode.On)
+                CaptureDeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
 
             if (_captureSession.Running)
                 _captureSession.StopRunning();
@@ -69,13 +71,10 @@ public partial class CameraViewHandler
 
     private void HandleCameraEnabled()
     {
-        if (VirtualView is not null)
-        {
-            if (VirtualView.CameraEnabled)
-                Start();
-            else
-                Stop();
-        }
+        if (VirtualView?.CameraEnabled ?? false)
+            Start();
+        else
+            Stop();
     }
 
     private void UpdateResolution()
@@ -93,11 +92,12 @@ public partial class CameraViewHandler
         {
             _captureSession.BeginConfiguration();
 
-            if (_videoDataOutput is not null && _captureSession.Outputs.Length > 0 && _captureSession.Outputs.Contains(_videoDataOutput))
+            if (_videoDataOutput is not null)
             {
-                _captureSession.RemoveOutput(_videoDataOutput);
+                if (_captureSession.Outputs.Length > 0 && _captureSession.Outputs.Contains(_videoDataOutput))
+                    _captureSession.RemoveOutput(_videoDataOutput);
+
                 _videoDataOutput.Dispose();
-                _videoDataOutput = null;
             }
 
             _videoDataOutput = new AVCaptureVideoDataOutput()
@@ -106,7 +106,12 @@ public partial class CameraViewHandler
                 WeakVideoSettings = new CVPixelBufferAttributes { PixelFormatType = CVPixelFormatType.CV32BGRA }.Dictionary
             };
 
-            _videoDataOutput.SetSampleBufferDelegate(new BarcodeAnalyzer(VirtualView, _videoPreviewLayer), _queue);
+            if (VirtualView is not null && _videoPreviewLayer is not null && _queue is not null)
+            {
+                _barcodeAnalyzer?.Dispose();
+                _barcodeAnalyzer = new BarcodeAnalyzer(VirtualView, _videoPreviewLayer);
+                _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, _queue);
+            }
 
             if (_captureSession.CanAddOutput(_videoDataOutput))
                 _captureSession.AddOutput(_videoDataOutput);
@@ -120,23 +125,22 @@ public partial class CameraViewHandler
         {
             _captureSession.BeginConfiguration();
 
-            if (_captureInput is not null && _captureSession.Inputs.Length > 0 && _captureSession.Inputs.Contains(_captureInput))
+            if (_captureInput is not null)
             {
-                _captureSession.RemoveInput(_captureInput);
+                if (_captureSession.Inputs.Length > 0 && _captureSession.Inputs.Contains(_captureInput))
+                    _captureSession.RemoveInput(_captureInput);
+
                 _captureInput.Dispose();
-                _captureInput = null;
             }
 
             if (_captureDevice is not null)
-            {
                 _captureDevice.Dispose();
-                _captureDevice = null;
-            }
 
             _captureDevice = AVCaptureDevice.GetDefaultDevice(
                 AVCaptureDeviceType.BuiltInWideAngleCamera,
                 AVMediaTypes.Video,
-                VirtualView.CameraFacing == CameraFacing.Front ? AVCaptureDevicePosition.Front : AVCaptureDevicePosition.Back);
+                VirtualView?.CameraFacing == CameraFacing.Front ? AVCaptureDevicePosition.Front : AVCaptureDevicePosition.Back);
+            _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
 
             if (_captureDevice is not null)
             {
@@ -147,11 +151,8 @@ public partial class CameraViewHandler
 
                 _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
 
-                if (_captureInput is not null)
-                {
-                    if (_captureSession.CanAddInput(_captureInput))
-                        _captureSession.AddInput(_captureInput);
-                }
+                if (_captureSession.CanAddInput(_captureInput))
+                    _captureSession.AddInput(_captureInput);
             }
 
             _captureSession.CommitConfiguration();
@@ -161,56 +162,67 @@ public partial class CameraViewHandler
     private void UpdateTorch()
     {
         if (_captureDevice is not null && _captureDevice.HasTorch && _captureDevice.TorchAvailable)
-            CaptureDeviceLock(() => _captureDevice.TorchMode = VirtualView.TorchOn ? AVCaptureTorchMode.On : AVCaptureTorchMode.Off);
+        {
+            if (VirtualView?.TorchOn ?? false)
+                CaptureDeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.On);
+            else
+                CaptureDeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
+        }
     }
 
     private void FocusOnTap()
     {
-        if (_captureDevice is not null && VirtualView.TapToFocusEnabled && _captureDevice.FocusPointOfInterestSupported)
+        if (_captureDevice is not null && (VirtualView?.TapToFocusEnabled ?? false) && _captureDevice.FocusPointOfInterestSupported)
         {
-            CaptureDeviceLock(() => _captureDevice.FocusPointOfInterest = _videoPreviewLayer.CaptureDevicePointOfInterestForPoint(_uITapGestureRecognizer.LocationInView(_previewView)));
-
-            if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
-            else
-                CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus);
+            CaptureDeviceLock(() =>
+            {
+                _captureDevice.FocusPointOfInterest = _videoPreviewLayer.CaptureDevicePointOfInterestForPoint(_uITapGestureRecognizer.LocationInView(_barcodeView));
+                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
+                    _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
+                else
+                    _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+            });
         }
-    }
-
-    private void DisableTorchIfNeeded()
-    {
-        if (_captureDevice is not null && _captureDevice.TorchMode == AVCaptureTorchMode.On)
-            CaptureDeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
     }
 
     private NSString GetCaptureSessionResolution()
     {
-        return VirtualView.CaptureQuality switch
+        return VirtualView?.CaptureQuality switch
         {
-            CaptureQuality.Lowest => AVCaptureSession.Preset352x288,
             CaptureQuality.Low => AVCaptureSession.Preset640x480,
             CaptureQuality.Medium => AVCaptureSession.Preset1280x720,
             CaptureQuality.High => AVCaptureSession.Preset1920x1080,
             CaptureQuality.Highest => AVCaptureSession.Preset3840x2160,
-            _ => throw new ArgumentOutOfRangeException(nameof(VirtualView.CaptureQuality))
+            _ => AVCaptureSession.Preset1280x720
         };
     }
     private void CaptureDeviceLock(Action handler)
     {
-        if (_captureDevice.LockForConfiguration(out _))
+        try
         {
-            try
-            {
+            if (_captureDevice.LockForConfiguration(out _))
                 handler();
-            }
-            catch (Exception)
-            {
-                
-            }
-            finally
-            {
-                _captureDevice.UnlockForConfiguration();
-            }
         }
+        catch (Exception)
+        {
+                
+        }
+        finally
+        {
+            _captureDevice?.UnlockForConfiguration();
+        }
+    }
+
+    private void DisposeView()
+    {
+        _barcodeView?.Dispose();
+        _uITapGestureRecognizer?.Dispose();
+        _videoPreviewLayer?.Dispose();
+        _captureSession?.Dispose();
+        _videoDataOutput?.Dispose();
+        _captureInput?.Dispose();
+        _captureDevice?.Dispose();
+        _barcodeAnalyzer?.Dispose();
+        _queue?.Dispose();
     }
 }
