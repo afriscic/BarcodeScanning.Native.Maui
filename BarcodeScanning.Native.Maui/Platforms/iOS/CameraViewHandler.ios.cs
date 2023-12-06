@@ -21,20 +21,16 @@ public partial class CameraViewHandler
 
     protected override UIView CreatePlatformView()
     {
+        _captureSession = new AVCaptureSession();
+        _uITapGestureRecognizer = new UITapGestureRecognizer(FocusOnTap);
         _queue = new DispatchQueue("BarcodeScannerQueue", new DispatchQueue.Attributes()
         {
             QualityOfService = DispatchQualityOfService.UserInitiated
         });
-        _captureSession = new AVCaptureSession
-        {
-            SessionPreset = GetCaptureSessionResolution()
-        };
         _videoPreviewLayer = new AVCaptureVideoPreviewLayer(_captureSession)
         {
             VideoGravity = AVLayerVideoGravity.ResizeAspectFill
         };
-        _uITapGestureRecognizer = new UITapGestureRecognizer(FocusOnTap);
-
         _barcodeView = new BarcodeView(_videoPreviewLayer);
         _barcodeView.AddGestureRecognizer(_uITapGestureRecognizer);
 
@@ -47,11 +43,6 @@ public partial class CameraViewHandler
         {
             if (_captureSession.Running)
                 _captureSession.StopRunning();
-
-            UpdateCamera();
-            UpdateResolution();
-            UpdateAnalyzer();
-            UpdateTorch();
 
             _captureSession.StartRunning();
         }
@@ -81,8 +72,16 @@ public partial class CameraViewHandler
     {
         if (_captureSession is not null)
         {
+            var quality = VirtualView?.CaptureQuality ?? CaptureQuality.Medium;
+
             _captureSession.BeginConfiguration();
-            _captureSession.SessionPreset = GetCaptureSessionResolution();
+
+            while (!_captureSession.CanSetSessionPreset(GetCaptureSessionResolution(quality)) && quality != CaptureQuality.Low)
+            {
+                quality -= 1;
+            }
+
+            _captureSession.SessionPreset = GetCaptureSessionResolution(quality);
             _captureSession.CommitConfiguration();
         }
     }
@@ -133,9 +132,7 @@ public partial class CameraViewHandler
                 _captureInput.Dispose();
             }
 
-            if (_captureDevice is not null)
-                _captureDevice.Dispose();
-
+            _captureDevice?.Dispose();
             _captureDevice = AVCaptureDevice.GetDefaultDevice(
                 AVCaptureDeviceType.BuiltInWideAngleCamera,
                 AVMediaTypes.Video,
@@ -154,6 +151,8 @@ public partial class CameraViewHandler
                 if (_captureSession.CanAddInput(_captureInput))
                     _captureSession.AddInput(_captureInput);
             }
+
+            UpdateResolution();
 
             _captureSession.CommitConfiguration();
         }
@@ -185,9 +184,9 @@ public partial class CameraViewHandler
         }
     }
 
-    private NSString GetCaptureSessionResolution()
+    private NSString GetCaptureSessionResolution(CaptureQuality quality)
     {
-        return VirtualView?.CaptureQuality switch
+        return quality switch
         {
             CaptureQuality.Low => AVCaptureSession.Preset640x480,
             CaptureQuality.Medium => AVCaptureSession.Preset1280x720,
