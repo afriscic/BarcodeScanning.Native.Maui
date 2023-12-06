@@ -2,8 +2,8 @@
 
 public enum CaptureQuality
 {
-    Low = 1,
-    Medium = 2,
-    High = 3,
-    Highest = 4
+    Low = 0,
+    Medium = 1,
+    High = 2,
+    Highest = 3
 }
