@@ -18,6 +18,8 @@ public partial class CameraViewHandler
     private LifecycleCameraController _cameraController;
     private PreviewView _previewView;
 
+    private bool _cameraStarted = false;
+
     protected override CoordinatorLayout CreatePlatformView()
     {
         DeviceDisplay.Current.MainDisplayInfoChanged += Current_MainDisplayInfoChanged;
@@ -27,12 +29,14 @@ public partial class CameraViewHandler
         {
             TapToFocusEnabled = VirtualView?.TapToFocusEnabled ?? false
         };
+        _cameraController.SetEnabledUseCases(CameraController.ImageAnalysis);
         _previewView = new PreviewView(Context)
         {
             Controller = _cameraController,
             LayoutParameters = new RelativeLayout.LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
         _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
+        _previewView.SetImplementationMode(PreviewView.ImplementationMode.Performance);
         _barcodeView = new BarcodeView(Context, _previewView);
 
         return _barcodeView;
@@ -55,13 +59,8 @@ public partial class CameraViewHandler
             if (lifecycleOwner is null)
                 return;
 
-            UpdateCamera();
-            UpdateAnalyzer();
-            UpdateTorch();
-
-            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Platforms.Android.Methods.TargetResolution(VirtualView?.CaptureQuality));
-
             _cameraController.BindToLifecycle(lifecycleOwner);
+            _cameraStarted = true;
         }
     }
 
@@ -71,6 +70,7 @@ public partial class CameraViewHandler
         {
             _cameraController.EnableTorch(false);
             _cameraController.Unbind();
+            _cameraStarted = false;
         }
     }
 
@@ -116,7 +116,11 @@ public partial class CameraViewHandler
 
     private void UpdateResolution()
     {
-        Start();
+        if (_cameraController is not null)
+            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Platforms.Android.Methods.TargetResolution(VirtualView?.CaptureQuality));
+
+        if (_cameraStarted)
+            Start();
     }
 
     private void UpdateTorch()
@@ -153,7 +157,7 @@ public partial class CameraViewHandler
                 try
                 {
                     if (VirtualView.CameraEnabled)
-                        Start();
+                        UpdateResolution();
                 }
                 catch (Exception)
                 {
