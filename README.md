@@ -11,8 +11,9 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 3. Ability to scan multiple barcodes in one frame,
 4. Ability to pool multiple scans for better scanning consistency,
 5. Transformed barcode bounding box for on-screen positioning,
-6. Code-behind and MVVM compatibility,
-7. Android ony - Abillity to invert source image to scan natively unsupported inverted barcodes, but at a performance cost.
+6. From version 1.2.0 implemented `ViewfinderMode` - detect only barcodes present in camera preview on screen and `AimMode` - detect only the barcode that is overlapped with the red dot centred in camera preview,
+7. Code-behind and MVVM compatibility,
+8. Android ony - Abillity to invert source image to scan natively unsupported inverted barcodes, but at a performance cost.
 
 ## Usage
 1. Install [Nuget package](https://www.nuget.org/packages/BarcodeScanning.Native.Maui),
