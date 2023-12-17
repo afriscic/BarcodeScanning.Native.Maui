@@ -32,7 +32,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     {
         try
         {
-            if (_cameraView.PauseScanning)
+            if (proxy is null || _cameraView.PauseScanning)
                 return;
             
             var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
@@ -55,6 +55,28 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
                 results = await _barcodeScanner.Process(image);
 
                 _barcodeResults.UnionWith(Methods.ProcessBarcodeResult(results, coordinateTransform));
+            }
+            
+            if (_cameraView.AimMode)
+            {
+                var previewCenter = new Point(_previewView.Width / 2, _previewView.Height / 2);
+
+                foreach (var barcode in _barcodeResults)
+                {
+                    if (!barcode.BoundingBox.Contains(previewCenter))
+                        _barcodeResults.Remove(barcode);
+                }
+            }
+
+            if (_cameraView.ViewfinderMode)
+            {
+                var previewRect = new RectF(0, 0, _previewView.Width, _previewView.Height);
+
+                foreach (var barcode in _barcodeResults)
+                {
+                    if (!previewRect.Contains(barcode.BoundingBox))
+                        _barcodeResults.Remove(barcode);
+                }
             }
 
             if (_barcodeResults is not null && _cameraView is not null)

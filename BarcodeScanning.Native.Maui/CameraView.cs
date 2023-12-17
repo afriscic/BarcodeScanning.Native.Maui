@@ -1,5 +1,7 @@
 ﻿using System.Windows.Input;
 
+using Timer = System.Timers.Timer;
+
 namespace BarcodeScanning;
 
 public partial class CameraView : View
@@ -171,10 +173,40 @@ public partial class CameraView : View
         set => SetValue(BarcodeSymbologiesProperty, value);
     }
 
+    public static readonly BindableProperty AimModeProperty = BindableProperty.Create(nameof(AimMode)
+    , typeof(bool)
+    , typeof(CameraView)
+    , false
+    , defaultBindingMode: BindingMode.TwoWay
+    , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).AimMode = (bool)newValue);
+    /// <summary>
+    /// Disables or enables aim mode. When enabled only barcode that is in the center of the preview will be detected.
+    /// </summary>
+    public bool AimMode
+    {
+        get => (bool)GetValue(AimModeProperty);
+        set => SetValue(AimModeProperty, value);
+    }
+
+    public static readonly BindableProperty ViewfinderModeProperty = BindableProperty.Create(nameof(ViewfinderMode)
+    , typeof(bool)
+    , typeof(CameraView)
+    , false
+    , defaultBindingMode: BindingMode.TwoWay
+    , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).ViewfinderMode = (bool)newValue);
+    /// <summary>
+    /// Disables or enables viewfinder mode. When enabled only barcode that is visible in the preview will be detected.
+    /// </summary>
+    public bool ViewfinderMode
+    {
+        get => (bool)GetValue(ViewfinderModeProperty);
+        set => SetValue(ViewfinderModeProperty, value);
+    }
+
     public event EventHandler<OnDetectionFinishedEventArg> OnDetectionFinished;
 
-    private readonly System.Timers.Timer _poolingTimer;
     private readonly HashSet<BarcodeResult> _pooledResults;
+    private readonly Timer _poolingTimer;
 
     public CameraView()
     {

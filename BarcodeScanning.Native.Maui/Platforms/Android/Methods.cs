@@ -11,7 +11,6 @@ using Xamarin.Google.MLKit.Vision.Common;
 using Image = Android.Media.Image;
 using Size = Android.Util.Size;
 
-
 namespace BarcodeScanning.Platforms.Android;
 
 internal class Methods

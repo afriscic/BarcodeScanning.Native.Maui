@@ -169,6 +169,17 @@ public partial class CameraViewHandler
         }
     }
 
+    private void HandleAimModeEnabled()
+    {
+        if (_barcodeView is not null && VirtualView is not null)
+        {
+            if (VirtualView.AimMode)
+                _barcodeView.AddAimingDot();
+            else
+                _barcodeView.RemoveAimingDot();
+        }
+    }
+
     private void FocusOnTap()
     {
         if (_captureDevice is not null && (VirtualView?.TapToFocusEnabled ?? false) && _captureDevice.FocusPointOfInterestSupported)

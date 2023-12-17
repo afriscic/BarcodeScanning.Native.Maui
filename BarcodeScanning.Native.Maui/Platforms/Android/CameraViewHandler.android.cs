@@ -129,6 +129,17 @@ public partial class CameraViewHandler
             _cameraController.EnableTorch(VirtualView?.TorchOn ?? false);
     }
 
+    private void HandleAimModeEnabled()
+    {
+        if (_barcodeView is not null && VirtualView is not null)
+        {
+            if (VirtualView.AimMode)
+                _barcodeView.AddAimingDot();
+            else
+                _barcodeView.RemoveAimingDot();
+        }
+    }
+
     private void DisposeView()
     {
         DeviceDisplay.Current.MainDisplayInfoChanged -= Current_MainDisplayInfoChanged;
