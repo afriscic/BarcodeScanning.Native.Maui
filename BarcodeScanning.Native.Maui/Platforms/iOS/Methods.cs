@@ -6,11 +6,11 @@ using Microsoft.Maui.Platform;
 using UIKit;
 using Vision;
 
-namespace BarcodeScanning.Platforms.iOS;
+namespace BarcodeScanning;
 
-internal class Methods
+public static partial class Methods
 {
-    internal static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
     {
         VNBarcodeObservation[] observations = null;
 

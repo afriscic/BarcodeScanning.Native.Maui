@@ -1,6 +1,6 @@
 ﻿namespace BarcodeScanning;
 
-public static class Methods
+public static partial class Methods
 {
     public static async Task<bool> AskForRequiredPermissionAsync()
     {
@@ -20,15 +20,5 @@ public static class Methods
 
         }
         return false;
-    }
-
-    public static Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
-    {
-       #if IOS
-       return Platforms.iOS.Methods.ScanFromImage(imageArray);
-       #elif ANDROID
-       return Platforms.Android.Methods.ScanFromImage(imageArray);
-       #endif
-
     }
 }

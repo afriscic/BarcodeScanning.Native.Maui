@@ -2,9 +2,7 @@
 using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
-using AndroidX.CoordinatorLayout.Widget;
 using AndroidX.Lifecycle;
-using BarcodeScanning.Platforms.Android;
 using Java.Util.Concurrent;
 using static Android.Views.ViewGroup;
 
@@ -20,7 +18,7 @@ public partial class CameraViewHandler
 
     private bool _cameraStarted = false;
 
-    protected override CoordinatorLayout CreatePlatformView()
+    protected override BarcodeView CreatePlatformView()
     {
         DeviceDisplay.Current.MainDisplayInfoChanged += Current_MainDisplayInfoChanged;
 
@@ -117,7 +115,7 @@ public partial class CameraViewHandler
     private void UpdateResolution()
     {
         if (_cameraController is not null)
-            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Platforms.Android.Methods.TargetResolution(VirtualView?.CaptureQuality));
+            _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Methods.TargetResolution(VirtualView?.CaptureQuality));
 
         if (_cameraStarted)
             Start();

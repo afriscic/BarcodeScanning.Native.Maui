@@ -1,5 +1,4 @@
 ﻿using AVFoundation;
-using BarcodeScanning.Platforms.iOS;
 using CoreFoundation;
 using CoreVideo;
 using Foundation;
@@ -19,7 +18,7 @@ public partial class CameraViewHandler
     private BarcodeView _barcodeView;
     private UITapGestureRecognizer _uITapGestureRecognizer;
 
-    protected override UIView CreatePlatformView()
+    protected override BarcodeView CreatePlatformView()
     {
         _captureSession = new AVCaptureSession();
         _uITapGestureRecognizer = new UITapGestureRecognizer(FocusOnTap);
@@ -133,10 +132,17 @@ public partial class CameraViewHandler
             }
 
             _captureDevice?.Dispose();
-            _captureDevice = AVCaptureDevice.GetDefaultDevice(
-                AVCaptureDeviceType.BuiltInWideAngleCamera,
-                AVMediaTypes.Video,
-                VirtualView?.CameraFacing == CameraFacing.Front ? AVCaptureDevicePosition.Front : AVCaptureDevicePosition.Back);
+            if (VirtualView?.CameraFacing == CameraFacing.Front)
+            {
+                _captureDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
+            }
+            else
+            {
+                _captureDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+            }
             _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
 
             if (_captureDevice is not null)

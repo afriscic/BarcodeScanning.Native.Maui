@@ -1,5 +1,4 @@
 ﻿using System.Windows.Input;
-
 using Timer = System.Timers.Timer;
 
 namespace BarcodeScanning;

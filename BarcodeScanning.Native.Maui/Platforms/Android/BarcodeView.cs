@@ -3,13 +3,12 @@ using Android.Graphics;
 using Android.Widget;
 using AndroidX.Camera.View;
 using AndroidX.CoordinatorLayout.Widget;
-
 using Color = Android.Graphics.Color;
 using Paint = Android.Graphics.Paint;
 
-namespace BarcodeScanning.Platforms.Android;
+namespace BarcodeScanning;
 
-internal class BarcodeView : CoordinatorLayout
+public class BarcodeView : CoordinatorLayout
 {
     private readonly ImageView _imageView;
     private readonly RelativeLayout _relativeLayout;

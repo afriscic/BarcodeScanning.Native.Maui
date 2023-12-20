@@ -3,9 +3,9 @@ using CoreAnimation;
 using CoreGraphics;
 using UIKit;
 
-namespace BarcodeScanning.Platforms.iOS;
+namespace BarcodeScanning;
 
-internal class BarcodeView : UIView
+public class BarcodeView : UIView
 {
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly CAShapeLayer _shapeLayer;

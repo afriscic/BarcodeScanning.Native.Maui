@@ -7,15 +7,14 @@ using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
-
 using Image = Android.Media.Image;
 using Size = Android.Util.Size;
 
-namespace BarcodeScanning.Platforms.Android;
+namespace BarcodeScanning;
 
-internal class Methods
+public static partial class Methods
 {
-    internal static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
     {
         using Bitmap bitmap = await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length);
         if (bitmap is null)

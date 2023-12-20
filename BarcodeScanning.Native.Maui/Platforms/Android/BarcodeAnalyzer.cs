@@ -4,10 +4,9 @@ using AndroidX.Camera.View;
 using AndroidX.Camera.View.Transform;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
-
 using Size = Android.Util.Size;
 
-namespace BarcodeScanning.Platforms.Android;
+namespace BarcodeScanning;
 
 internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 {

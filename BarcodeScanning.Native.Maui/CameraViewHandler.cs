@@ -1,15 +1,8 @@
 ﻿using Microsoft.Maui.Handlers;
 
-#if IOS
-using NativeCameraView = UIKit.UIView;
-#elif ANDROID
-using NativeCameraView = AndroidX.CoordinatorLayout.Widget.CoordinatorLayout;
-
-#endif
-
 namespace BarcodeScanning;
 
-public partial class CameraViewHandler : ViewHandler<CameraView, NativeCameraView>
+public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
 {
     public static readonly PropertyMapper<CameraView, CameraViewHandler> CameraViewMapper = new()
     {
@@ -29,10 +22,10 @@ public partial class CameraViewHandler : ViewHandler<CameraView, NativeCameraVie
     {
     }
 
-    protected override void DisconnectHandler(NativeCameraView nativeView)
+    protected override void DisconnectHandler(BarcodeView barcodeView)
     {
         this.Stop();
-        base.DisconnectHandler(nativeView);
+        base.DisconnectHandler(barcodeView);
         this.DisposeView();
     }
 }

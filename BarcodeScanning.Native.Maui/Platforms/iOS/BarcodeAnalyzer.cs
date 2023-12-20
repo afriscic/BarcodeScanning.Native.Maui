@@ -2,7 +2,7 @@
 using CoreMedia;
 using Vision;
 
-namespace BarcodeScanning.Platforms.iOS;
+namespace BarcodeScanning;
 
 internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 {
