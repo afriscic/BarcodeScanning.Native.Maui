@@ -20,8 +20,6 @@ public partial class CameraViewHandler
 
     protected override BarcodeView CreatePlatformView()
     {
-        DeviceDisplay.Current.MainDisplayInfoChanged += Current_MainDisplayInfoChanged;
-
         _cameraExecutor = Executors.NewSingleThreadExecutor();
         _cameraController = new LifecycleCameraController(Context)
         {
@@ -140,13 +138,13 @@ public partial class CameraViewHandler
 
     private void DisposeView()
     {
-        DeviceDisplay.Current.MainDisplayInfoChanged -= Current_MainDisplayInfoChanged;
-
         _ = Task.Run(async () =>
         {
             await Task.Delay(100);
             MainThread.BeginInvokeOnMainThread(() =>
             {
+                this.Stop();
+
                 _barcodeView?.Dispose();
                 _previewView?.Dispose();
                 _cameraController?.Dispose();
@@ -156,7 +154,7 @@ public partial class CameraViewHandler
         });
     }
 
-    private void Current_MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
+    internal void Current_MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
     {
         _ = Task.Run(async () =>
         {

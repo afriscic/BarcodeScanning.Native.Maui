@@ -229,8 +229,14 @@ public partial class CameraViewHandler
         }
     }
 
+    internal void Current_MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
+    {
+    }
+
     private void DisposeView()
     {
+        this.Stop();
+
         _barcodeView?.Dispose();
         _uITapGestureRecognizer?.Dispose();
         _videoPreviewLayer?.Dispose();

@@ -24,7 +24,6 @@ public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
 
     protected override void DisconnectHandler(BarcodeView barcodeView)
     {
-        this.Stop();
         base.DisconnectHandler(barcodeView);
         this.DisposeView();
     }

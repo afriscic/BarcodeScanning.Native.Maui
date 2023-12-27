@@ -205,10 +205,11 @@ public partial class CameraView : View
     public event EventHandler<OnDetectionFinishedEventArg> OnDetectionFinished;
 
     private readonly HashSet<BarcodeResult> _pooledResults;
-    private readonly Timer _poolingTimer;
+    private readonly Timer _poolingTimer; 
 
     public CameraView()
     {
+        this.Loaded += CameraView_Loaded;
         this.Unloaded += CameraView_Unloaded;
 
         _pooledResults = new();
@@ -217,6 +218,18 @@ public partial class CameraView : View
             AutoReset = false
         };
         _poolingTimer.Elapsed += PoolingTimer_Elapsed;
+    }
+
+    private void CameraView_Loaded(object sender, EventArgs e)
+    {
+        if (this.Handler is not null)
+            DeviceDisplay.Current.MainDisplayInfoChanged += ((CameraViewHandler)this.Handler).Current_MainDisplayInfoChanged;
+    }
+
+    private void CameraView_Unloaded(object sender, EventArgs e)
+    {
+        if (this.Handler is not null)
+            DeviceDisplay.Current.MainDisplayInfoChanged -= ((CameraViewHandler)this.Handler).Current_MainDisplayInfoChanged;
     }
 
     internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults)
@@ -272,16 +285,5 @@ public partial class CameraView : View
             if (OnDetectionFinishedCommand?.CanExecute(results) ?? false)
                 OnDetectionFinishedCommand?.Execute(results);
         });
-    }
-
-    /// <summary>
-    /// DisconnectHandler has to be called manually
-    /// https://learn.microsoft.com/en-us/dotnet/maui/user-interface/handlers/create?view=net-maui-8.0#native-view-cleanup
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void CameraView_Unloaded(object sender, EventArgs e)
-    {
-        this.Handler?.DisconnectHandler();
     }
 }

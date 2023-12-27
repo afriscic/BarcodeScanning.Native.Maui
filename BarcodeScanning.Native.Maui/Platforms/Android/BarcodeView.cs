@@ -59,4 +59,14 @@ public class BarcodeView : CoordinatorLayout
             
         }
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        this.RemoveAllViews();
+        _relativeLayout.RemoveAllViews();
+
+        _imageView?.Dispose();
+        _relativeLayout?.Dispose();
+        base.Dispose(disposing);
+    }
 }

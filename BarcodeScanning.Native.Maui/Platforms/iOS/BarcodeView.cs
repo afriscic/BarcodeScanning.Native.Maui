@@ -59,4 +59,13 @@ public class BarcodeView : UIView
         if (_previewLayer.Connection is not null && _previewLayer.Connection.SupportsVideoOrientation)
             _previewLayer.Connection.VideoOrientation = videoOrientation;
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        _previewLayer?.RemoveFromSuperLayer();
+        _shapeLayer?.RemoveFromSuperLayer();
+
+        _shapeLayer?.Dispose();
+        base.Dispose(disposing);
+    }
 }
