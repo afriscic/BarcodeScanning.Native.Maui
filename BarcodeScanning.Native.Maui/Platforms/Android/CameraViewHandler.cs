@@ -16,6 +16,7 @@ public partial class CameraViewHandler
     private LifecycleCameraController _cameraController;
     private PreviewView _previewView;
 
+    private readonly int _delay = 200;
     private bool _cameraStarted = false;
 
     protected override BarcodeView CreatePlatformView()
@@ -23,7 +24,8 @@ public partial class CameraViewHandler
         _cameraExecutor = Executors.NewSingleThreadExecutor();
         _cameraController = new LifecycleCameraController(Context)
         {
-            TapToFocusEnabled = VirtualView?.TapToFocusEnabled ?? false
+            TapToFocusEnabled = VirtualView?.TapToFocusEnabled ?? false,
+            ImageAnalysisBackpressureStrategy = ImageAnalysis.StrategyKeepOnlyLatest
         };
         _cameraController.SetEnabledUseCases(CameraController.ImageAnalysis);
         _previewView = new PreviewView(Context)
@@ -55,6 +57,8 @@ public partial class CameraViewHandler
             if (lifecycleOwner is null)
                 return;
 
+            UpdateAnalyzer();
+
             _cameraController.BindToLifecycle(lifecycleOwner);
             _cameraStarted = true;
         }
@@ -77,11 +81,15 @@ public partial class CameraViewHandler
         if (VirtualView?.CameraEnabled ?? false)
             _ = Task.Run(async () =>
             {
-                await Task.Delay(100);
+                await Task.Delay(_delay);
                 MainThread.BeginInvokeOnMainThread(Start);
             });
         else
-            Stop();
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(_delay);
+                MainThread.BeginInvokeOnMainThread(Stop);
+            });
     }
 
     //TODO Implement camera-mlkit-vision
@@ -94,7 +102,6 @@ public partial class CameraViewHandler
             _barcodeAnalyzer?.Dispose();
             _barcodeAnalyzer = new BarcodeAnalyzer(VirtualView, _previewView);
             _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
-            _cameraController.ImageAnalysisBackpressureStrategy = ImageAnalysis.StrategyKeepOnlyLatest;
         }
     }
 
@@ -140,7 +147,7 @@ public partial class CameraViewHandler
     {
         _ = Task.Run(async () =>
         {
-            await Task.Delay(100);
+            await Task.Delay(_delay);
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 this.Stop();
@@ -158,7 +165,7 @@ public partial class CameraViewHandler
     {
         _ = Task.Run(async () =>
         {
-            await Task.Delay(100);
+            await Task.Delay(_delay);
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 try
