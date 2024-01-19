@@ -16,11 +16,13 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     private readonly IBarcodeScanner _barcodeScanner;
     private readonly CameraView _cameraView;
     private readonly PreviewView _previewView;
+    private readonly CameraViewHandler _cameraViewHandler;
 
-    internal BarcodeAnalyzer(CameraView cameraView, PreviewView previewView)
+    internal BarcodeAnalyzer(CameraView cameraView, PreviewView previewView, CameraViewHandler cameraViewHandler)
     {
         _cameraView = cameraView;
         _previewView = previewView;
+        _cameraViewHandler = cameraViewHandler;
 
         _barcodeScanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
@@ -91,11 +93,11 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         }
         finally
         {
-            SafeCloseImageProxy(proxy);
+            await SafeCloseImageProxy(proxy, _cameraViewHandler);
         }
     } 
 
-    private static void SafeCloseImageProxy(IImageProxy proxy)
+    private async static Task SafeCloseImageProxy(IImageProxy proxy, CameraViewHandler cameraViewHandler)
     {
         try
         {
@@ -103,7 +105,8 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         }
         catch (Exception) 
         {
-
+            await Task.Delay(10);
+            await MainThread.InvokeOnMainThreadAsync(() => cameraViewHandler.Start());
         }
     }
 
