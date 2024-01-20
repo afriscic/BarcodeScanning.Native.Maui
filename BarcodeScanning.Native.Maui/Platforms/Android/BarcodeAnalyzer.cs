@@ -35,7 +35,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         {
             if (proxy is null || _cameraView.PauseScanning)
                 return;
-            
+
             var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
             var source = new ImageProxyTransformFactory
             {
@@ -57,7 +57,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 
                 _barcodeResults.UnionWith(Methods.ProcessBarcodeResult(results, coordinateTransform));
             }
-            
+
             if (_cameraView.AimMode)
             {
                 var previewCenter = new Point(_previewView.Width / 2, _previewView.Height / 2);
@@ -93,20 +93,19 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         }
         finally
         {
-            await SafeCloseImageProxy(proxy, _cameraViewHandler);
+            SafeCloseImageProxy(proxy, _cameraViewHandler);
         }
-    } 
+    }
 
-    private async static Task SafeCloseImageProxy(IImageProxy proxy, CameraViewHandler cameraViewHandler)
+    private static void SafeCloseImageProxy(IImageProxy proxy, CameraViewHandler cameraViewHandler)
     {
         try
         {
             proxy?.Close();
         }
-        catch (Exception) 
+        catch (Exception)
         {
-            await Task.Delay(10);
-            await MainThread.InvokeOnMainThreadAsync(() => cameraViewHandler.Start());
+            MainThread.BeginInvokeOnMainThread(() => cameraViewHandler.Start());
         }
     }
 
