@@ -40,7 +40,7 @@ public partial class CameraViewHandler
         return _barcodeView;
     }
 
-    private void Start()
+    public void Start()
     {
         if (_cameraController is not null)
         {
@@ -100,7 +100,7 @@ public partial class CameraViewHandler
         {
             _cameraController.ClearImageAnalysisAnalyzer();
             _barcodeAnalyzer?.Dispose();
-            _barcodeAnalyzer = new BarcodeAnalyzer(VirtualView, _previewView);
+            _barcodeAnalyzer = new BarcodeAnalyzer(VirtualView, _previewView, this);
             _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
         }
     }

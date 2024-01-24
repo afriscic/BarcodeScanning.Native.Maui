@@ -16,11 +16,13 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     private readonly IBarcodeScanner _barcodeScanner;
     private readonly CameraView _cameraView;
     private readonly PreviewView _previewView;
+    private readonly CameraViewHandler _cameraViewHandler;
 
-    internal BarcodeAnalyzer(CameraView cameraView, PreviewView previewView)
+    internal BarcodeAnalyzer(CameraView cameraView, PreviewView previewView, CameraViewHandler cameraViewHandler)
     {
         _cameraView = cameraView;
         _previewView = previewView;
+        _cameraViewHandler = cameraViewHandler;
 
         _barcodeScanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
@@ -33,7 +35,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         {
             if (proxy is null || _cameraView.PauseScanning)
                 return;
-            
+
             var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
             var source = new ImageProxyTransformFactory
             {
@@ -55,7 +57,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 
                 _barcodeResults.UnionWith(Methods.ProcessBarcodeResult(results, coordinateTransform));
             }
-            
+
             if (_cameraView.AimMode)
             {
                 var previewCenter = new Point(_previewView.Width / 2, _previewView.Height / 2);
@@ -91,19 +93,19 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         }
         finally
         {
-            SafeCloseImageProxy(proxy);
+            SafeCloseImageProxy(proxy, _cameraViewHandler);
         }
-    } 
+    }
 
-    private static void SafeCloseImageProxy(IImageProxy proxy)
+    private static void SafeCloseImageProxy(IImageProxy proxy, CameraViewHandler cameraViewHandler)
     {
         try
         {
             proxy?.Close();
         }
-        catch (Exception) 
+        catch (Exception)
         {
-
+            MainThread.BeginInvokeOnMainThread(() => cameraViewHandler.Start());
         }
     }
 
