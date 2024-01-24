@@ -8,17 +8,20 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 {
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly CameraView _cameraView;
+    private readonly CameraViewHandler _cameraViewHandler;
     private readonly VNDetectBarcodesRequest _barcodeRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
 
     private HashSet<BarcodeResult> _barcodeResults;
 
-    internal BarcodeAnalyzer(CameraView cameraView, AVCaptureVideoPreviewLayer previewLayer)
+    internal BarcodeAnalyzer(CameraView cameraView, AVCaptureVideoPreviewLayer previewLayer, CameraViewHandler cameraViewHandler)
     {
         _cameraView = cameraView;
+        _cameraViewHandler = cameraViewHandler;
         _previewLayer = previewLayer;
         _sequenceRequestHandler = new VNSequenceRequestHandler();
-        _barcodeRequest = new VNDetectBarcodesRequest((request, error) => {
+        _barcodeRequest = new VNDetectBarcodesRequest((request, error) => 
+        {
             if (error is null)
                 _barcodeResults = Methods.ProcessBarcodeResult(request.GetResults<VNBarcodeObservation>(), _previewLayer);
         });
@@ -64,23 +67,17 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         }
         catch (Exception)
         {
-
         }
         finally
         {
-            SafeCloseSampleBuffer(sampleBuffer);
-        }
-    }
-
-    private static void SafeCloseSampleBuffer(CMSampleBuffer buffer)
-    {
-        try
-        {
-            buffer?.Dispose();
-        }
-        catch (Exception)
-        {
-
+            try
+            {
+                sampleBuffer?.Dispose();
+            }
+            catch (Exception)
+            {
+                MainThread.BeginInvokeOnMainThread(_cameraViewHandler.Start);
+            }
         }
     }
 }

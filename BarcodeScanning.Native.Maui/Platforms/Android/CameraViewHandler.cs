@@ -17,7 +17,7 @@ public partial class CameraViewHandler
     private PreviewView _previewView;
 
     private readonly int _delay = 200;
-    private bool _cameraStarted = false;
+    private bool _cameraRunning = false;
 
     protected override BarcodeView CreatePlatformView()
     {
@@ -40,11 +40,12 @@ public partial class CameraViewHandler
         return _barcodeView;
     }
 
-    public void Start()
-    {
+    internal void Start()
+    { 
         if (_cameraController is not null)
         {
             _cameraController.Unbind();
+            _cameraRunning = false;
 
             ILifecycleOwner lifecycleOwner = null;
             if (Context is ILifecycleOwner)
@@ -57,10 +58,15 @@ public partial class CameraViewHandler
             if (lifecycleOwner is null)
                 return;
 
+            if (_cameraController.CameraSelector is null)
+                UpdateCamera();
+            if (_cameraController.ImageAnalysisTargetSize is null)
+                UpdateResolution();
+
             UpdateAnalyzer();
 
             _cameraController.BindToLifecycle(lifecycleOwner);
-            _cameraStarted = true;
+            _cameraRunning = true;
         }
     }
 
@@ -70,7 +76,7 @@ public partial class CameraViewHandler
         {
             _cameraController.EnableTorch(false);
             _cameraController.Unbind();
-            _cameraStarted = false;
+            _cameraRunning = false;
         }
     }
 
@@ -117,12 +123,14 @@ public partial class CameraViewHandler
 
     }
 
+    //TODO Implement setImageAnalysisResolutionSelector
+    //https://developer.android.com/reference/androidx/camera/view/CameraController#setImageAnalysisResolutionSelector(androidx.camera.core.resolutionselector.ResolutionSelector)
     private void UpdateResolution()
     {
         if (_cameraController is not null)
             _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Methods.TargetResolution(VirtualView?.CaptureQuality));
 
-        if (_cameraStarted)
+        if (_cameraRunning)
             Start();
     }
 
