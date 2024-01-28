@@ -7,50 +7,38 @@ namespace BarcodeScanning;
 [DependencyProperty<ICommand>("OnDetectionFinishedCommand",
     Description = "Command that will be executed when barcode is detected.")]
 [DependencyProperty<bool>("VibrationOnDetected", DefaultValue = true,
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Disables or enables vibration on barcode detection. " +
                   "On Android make sure that the android.permission.VIBRATE permission " +
                   "is declared in the AndroidManifest.xml file.")]
 [DependencyProperty<bool>("CameraEnabled",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Disables or enables camera.")]
 [DependencyProperty<bool>("PauseScanning",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Pauses barcode scanning.")]
 [DependencyProperty<bool>("ForceInverted",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Forces scanning of inverted barcodes. Reduces performance significantly. Android only.")]
 [DependencyProperty<int>("PoolingInterval",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Enables pooling of detections for better detection of multiple barcodes at once. " +
                   "Value in milliseconds. " +
                   "Default 0 (disabled).")]
 [DependencyProperty<bool>("TorchOn",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Disables or enables torch.")]
 [DependencyProperty<bool>("TapToFocusEnabled",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Disables or enables tap-to-focus.")]
 [DependencyProperty<CameraFacing>("CameraFacing",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Select Back or Front camera." +
                   "Default value is Back Camera.")]
 [DependencyProperty<CaptureQuality>("CaptureQuality", DefaultValue = CaptureQuality.Medium,
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Set the capture quality for the image analysis." +
                   "Recommended and default value is Medium." +
                   "Use highest values for more precision or lower for fast scanning.")]
 [DependencyProperty<BarcodeFormats>("BarcodeSymbologies",
     DefaultValue = BarcodeFormats.All,
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Set the enabled symbologies." +
                   "Default value All.")]
 [DependencyProperty<bool>("AimMode",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Disables or enables aim mode. " +
                   "When enabled only barcode that is in the center of the preview will be detected.")]
 [DependencyProperty<bool>("ViewfinderMode",
-    DefaultBindingMode = DefaultBindingMode.TwoWay,
     Description = "Disables or enables viewfinder mode. " +
                   "When enabled only barcode that is visible in the preview will be detected.")]
 [WeakEvent<OnDetectionFinishedEventArg>("OnDetectionFinished",
