@@ -2,25 +2,20 @@
 
 namespace BarcodeScanning;
 
-public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
+public partial class CameraViewHandler()
+    : ViewHandler<CameraView, BarcodeView>(CameraViewMapper, CameraCommandMapper)
 {
     public static readonly PropertyMapper<CameraView, CameraViewHandler> CameraViewMapper = new()
     {
-        [nameof(CameraView.CameraFacing)] = (handler, virtualView) => handler.UpdateCamera(),
-        [nameof(CameraView.CaptureQuality)] = (handler, virtualView) => handler.UpdateResolution(),
-        [nameof(CameraView.BarcodeSymbologies)] = (handler, virtualView) => handler.UpdateAnalyzer(),
-        [nameof(CameraView.TorchOn)] = (handler, virtualView) => handler.UpdateTorch(),
-        [nameof(CameraView.CameraEnabled)] = (handler, virtualView) => handler.HandleCameraEnabled(),
-        [nameof(CameraView.AimMode)] = (handler, virtualView) => handler.HandleAimModeEnabled()
+        [nameof(CameraView.CameraFacing)] = (handler, _) => handler.UpdateCamera(),
+        [nameof(CameraView.CaptureQuality)] = (handler, _) => handler.UpdateResolution(),
+        [nameof(CameraView.BarcodeSymbologies)] = (handler, _) => handler.UpdateAnalyzer(),
+        [nameof(CameraView.TorchOn)] = (handler, _) => handler.UpdateTorch(),
+        [nameof(CameraView.CameraEnabled)] = (handler, _) => handler.HandleCameraEnabled(),
+        [nameof(CameraView.AimMode)] = (handler, _) => handler.HandleAimModeEnabled()
     };
 
-    public static readonly CommandMapper<CameraView, CameraViewHandler> CameraCommandMapper = new()
-    {
-    };
-
-    public CameraViewHandler() : base(CameraViewMapper, CameraCommandMapper)
-    {
-    }
+    public static readonly CommandMapper<CameraView, CameraViewHandler> CameraCommandMapper = new();
 
     protected override void DisconnectHandler(BarcodeView barcodeView)
     {

@@ -12,6 +12,7 @@
 		<Description>Barcode scanning library for .NET MAUI</Description>
 		<PackageProjectUrl>https://github.com/afriscic/BarcodeScanning.Native.Maui</PackageProjectUrl>
 		<PackageTags>.NET MAUI android ios barcode-scanner</PackageTags>
+		<RootNamespace>BarcodeScanning</RootNamespace>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.1</SupportedOSPlatformVersion>
@@ -25,6 +26,10 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Maui.Controls.Compatibility" Version="$(MauiVersion)" />
+		<PackageReference Include="DependencyPropertyGenerator" Version="1.5.0-beta.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
