@@ -7,18 +7,18 @@ public static partial class Methods
         try
         {
             var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            if (status != PermissionStatus.Granted)
-            {
-                await Permissions.RequestAsync<Permissions.Camera>();
-            }
-            status = await Permissions.CheckStatusAsync<Permissions.Camera>();
             if (status == PermissionStatus.Granted)
+            {
                 return true;
+            }
+            
+            status = await Permissions.RequestAsync<Permissions.Camera>();
+            
+            return status == PermissionStatus.Granted;
         }
         catch (Exception)
         {
-
+            return false;
         }
-        return false;
     }
 }
