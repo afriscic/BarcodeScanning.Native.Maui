@@ -48,11 +48,13 @@ public class BarcodeView : UIView
         _previewLayer.Frame = this.Layer.Bounds;
         _shapeLayer.Position = new CGPoint(this.Layer.Bounds.Width / 2, this.Layer.Bounds.Height / 2);
 
-        var videoOrientation = UIDevice.CurrentDevice.Orientation switch
+        var interfaceOrientation = Window.WindowScene?.InterfaceOrientation;
+
+        var videoOrientation = interfaceOrientation switch
         {
-            UIDeviceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeRight,
-            UIDeviceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeLeft,
-            UIDeviceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
+            UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
+            UIInterfaceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeRight,
+            UIInterfaceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
             _ => AVCaptureVideoOrientation.Portrait
         };
 
