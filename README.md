@@ -84,5 +84,3 @@ A list of bindable properties with descriptions can be found in [CameraView.cs](
 
 ## TODO Windows and macOS support
 Windows and macOS are currently unsupported, but support can be added in the future. Vision framework is compatible with macOS so this implementation wouldn't be difficult. For Windows, barcode detection could be supported through [Zxing.Net](https://github.com/micjahn/ZXing.Net) project.
-
-test
