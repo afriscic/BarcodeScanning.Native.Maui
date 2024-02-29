@@ -274,13 +274,22 @@ public partial class CameraViewHandler
         this.Stop();
 
         _barcodeView?.Dispose();
+        _barcodeView = null;
         _uITapGestureRecognizer?.Dispose();
+        _uITapGestureRecognizer = null;
         _videoPreviewLayer?.Dispose();
+        _videoPreviewLayer = null;
         _captureSession?.Dispose();
+        _captureSession = null;
         _videoDataOutput?.Dispose();
+        _videoDataOutput = null;
         _captureInput?.Dispose();
+        _captureInput = null;
         _captureDevice?.Dispose();
+        _captureDevice = null;
         _barcodeAnalyzer?.Dispose();
+        _barcodeAnalyzer = null;
         _queue?.Dispose();
+        _queue = null;
     }
 }
