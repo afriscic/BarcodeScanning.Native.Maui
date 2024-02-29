@@ -9,8 +9,7 @@ public partial class CameraView : View
         , typeof(ICommand)
         , typeof(CameraView)
         , null
-        , defaultBindingMode: BindingMode.TwoWay
-        , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).OnDetectionFinishedCommand = (ICommand)newValue);
+        , defaultBindingMode: BindingMode.OneWay);
     public ICommand OnDetectionFinishedCommand
     {
         get => (ICommand)GetValue(OnDetectionFinishedCommandProperty);
