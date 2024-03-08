@@ -33,7 +33,6 @@ public static partial class Methods
         return ProcessBarcodeResult(observations);
     }
 
-
     internal static HashSet<BarcodeResult> ProcessBarcodeResult(VNBarcodeObservation[] result, AVCaptureVideoPreviewLayer previewLayer = null)
     {
         var resultList = new HashSet<BarcodeResult>();
