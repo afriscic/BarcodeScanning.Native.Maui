@@ -94,7 +94,17 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             }
             catch (Exception)
             {
-                MainThread.BeginInvokeOnMainThread(() => { try { _cameraViewHandler.Start(); } catch (Exception) { } });
+                MainThread.BeginInvokeOnMainThread(() => 
+                { 
+                    try 
+                    { 
+                        _cameraViewHandler.Start(); 
+                    } 
+                    catch (Exception) 
+                    { 
+
+                    } 
+                });
             }
         }
     }

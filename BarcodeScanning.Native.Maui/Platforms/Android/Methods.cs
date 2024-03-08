@@ -2,6 +2,7 @@
 using Android.Graphics;
 using Android.Runtime;
 using AndroidX.Camera.View.Transform;
+using Java.Net;
 using Java.Util;
 using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
@@ -15,11 +16,19 @@ namespace BarcodeScanning;
 public static partial class Methods
 {
     public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
+        => await ProcessBitmap(await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(FileResult file)
+        => await ProcessBitmap(await BitmapFactory.DecodeStreamAsync(await file.OpenReadAsync()));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(string url)
+        => await ProcessBitmap(await BitmapFactory.DecodeStreamAsync(new URL(url).OpenStream()));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(Stream stream)
+        => await ProcessBitmap(await BitmapFactory.DecodeStreamAsync(stream));
+    private static async Task<HashSet<BarcodeResult>> ProcessBitmap(Bitmap bitmap)
     {
-        using Bitmap bitmap = await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length);
         if (bitmap is null)
             return null;
-        using var image = InputImage.FromBitmap(bitmap, 0);
+
+        var image = InputImage.FromBitmap(bitmap, 0);
         var scanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Barcode.FormatAllFormats)
             .Build());

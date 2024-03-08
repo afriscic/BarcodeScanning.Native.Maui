@@ -11,19 +11,28 @@ namespace BarcodeScanning;
 public static partial class Methods
 {
     public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
+        => await ProcessImage(UIImage.LoadFromData(NSData.FromArray(imageArray)));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(FileResult file)
+        => await ProcessImage(UIImage.LoadFromData(NSData.FromStream(await file.OpenReadAsync())));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(string url)
+        => await ProcessImage(UIImage.LoadFromData(NSData.FromUrl(new NSUrl(url))));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImage(Stream stream)
+        => await ProcessImage(UIImage.LoadFromData(NSData.FromStream(stream)));
+    private static async Task<HashSet<BarcodeResult>> ProcessImage(UIImage image)
     {
+        if (image is null)
+            return null;
+        
         VNBarcodeObservation[] observations = null;
-
-        var image = UIImage.LoadFromData(NSData.FromArray(imageArray));
         var barcodeRequest = new VNDetectBarcodesRequest((request, error) => {
             if (error is null)
                 observations = request.GetResults<VNBarcodeObservation>();
         });
         var handler = new VNImageRequestHandler(image.CGImage, new NSDictionary());
-        
         await Task.Run(() => handler.Perform([barcodeRequest], out _));
         return ProcessBarcodeResult(observations);
     }
+
 
     internal static HashSet<BarcodeResult> ProcessBarcodeResult(VNBarcodeObservation[] result, AVCaptureVideoPreviewLayer previewLayer = null)
     {
