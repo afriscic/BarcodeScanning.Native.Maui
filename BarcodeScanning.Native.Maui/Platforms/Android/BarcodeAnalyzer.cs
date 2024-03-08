@@ -92,10 +92,10 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             {
                 proxy?.Close();
             }
-            catch (Exception) 
+            catch (Exception)
             {
-                MainThread.BeginInvokeOnMainThread(_cameraViewHandler.Start);
+                MainThread.BeginInvokeOnMainThread(() => { try { _cameraViewHandler.Start(); } catch (Exception) { } });
             }
         }
-    } 
+    }
 }

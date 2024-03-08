@@ -27,12 +27,12 @@ public class BarcodeView : CoordinatorLayout
             LayoutParameters = new LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
         _relativeLayout.AddView(previewView);
-        
+
         this.AddView(_relativeLayout);
     }
 
     internal void AddAimingDot()
-    {      
+    {
         var radius = 25;
         var circleBitmap = Bitmap.CreateBitmap(2 * radius, 2 * radius, Bitmap.Config.Argb8888);
         var canvas = new Canvas(circleBitmap);
@@ -56,17 +56,24 @@ public class BarcodeView : CoordinatorLayout
         }
         catch (Exception)
         {
-            
+
         }
     }
 
     protected override void Dispose(bool disposing)
     {
-        this.RemoveAllViews();
-        _relativeLayout.RemoveAllViews();
+        try
+        {
+            this.RemoveAllViews();
+            _relativeLayout.RemoveAllViews();
 
-        _imageView?.Dispose();
-        _relativeLayout?.Dispose();
-        base.Dispose(disposing);
+            _imageView?.Dispose();
+            _relativeLayout?.Dispose();
+            base.Dispose(disposing);
+        }
+        catch (Exception)
+        {
+
+        }
     }
 }
