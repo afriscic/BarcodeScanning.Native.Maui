@@ -80,4 +80,15 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             }
         }
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _barcodeRequest.Dispose();
+            _sequenceRequestHandler.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 }
