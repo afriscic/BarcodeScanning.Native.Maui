@@ -10,23 +10,20 @@ namespace BarcodeScanning;
 
 internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 {
-    public Size DefaultTargetResolution => Methods.TargetResolution(_cameraView.CaptureQuality);
+    public Size DefaultTargetResolution => Methods.TargetResolution(CaptureQuality.Medium);
     public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemOriginal;
 
-    private readonly IBarcodeScanner _barcodeScanner;
     private readonly CameraView _cameraView;
     private readonly CameraViewHandler _cameraViewHandler;
     private readonly PreviewView _previewView;
+
+    private IBarcodeScanner _barcodeScanner;
 
     internal BarcodeAnalyzer(CameraView cameraView, PreviewView previewView, CameraViewHandler cameraViewHandler)
     {
         _cameraView = cameraView;
         _cameraViewHandler = cameraViewHandler;
         _previewView = previewView;
-
-        _barcodeScanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
-            .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
-            .Build());
     }
 
     public async void Analyze(IImageProxy proxy)
@@ -35,6 +32,10 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         {
             if (proxy is null || _cameraView.PauseScanning)
                 return;
+            
+            _barcodeScanner ??= Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
+                                    .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
+                                    .Build());
 
             var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
             var source = new ImageProxyTransformFactory
@@ -102,10 +103,17 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
                     } 
                     catch (Exception) 
                     { 
-
                     } 
                 });
             }
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            _barcodeScanner?.Dispose();
+
+        base.Dispose(disposing);
     }
 }

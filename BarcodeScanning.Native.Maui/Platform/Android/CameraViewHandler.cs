@@ -16,7 +16,7 @@ public partial class CameraViewHandler
     private LifecycleCameraController _cameraController;
     private PreviewView _previewView;
 
-    private readonly int _delay = 200;
+    private const int _delay = 200;
     private bool _cameraRunning = false;
 
     protected override BarcodeView CreatePlatformView()
@@ -102,7 +102,7 @@ public partial class CameraViewHandler
     //https://developer.android.com/reference/androidx/camera/mlkit/vision/MlKitAnalyzer
     private void UpdateAnalyzer()
     {
-        if (_cameraController is not null && _cameraExecutor is not null && VirtualView is not null && _previewView is not null)
+        if (_cameraController is not null && _cameraExecutor is not null)
         {
             _cameraController.ClearImageAnalysisAnalyzer();
             _barcodeAnalyzer?.Dispose();
@@ -142,15 +142,15 @@ public partial class CameraViewHandler
 
     private void HandleAimModeEnabled()
     {
-        if (_barcodeView is not null && VirtualView is not null)
+        if (_barcodeView is not null)
         {
-            if (VirtualView.AimMode)
+            if (VirtualView?.AimMode ?? false)
                 _barcodeView.AddAimingDot();
             else
                 _barcodeView.RemoveAimingDot();
         }
     }
-
+    
     private void DisposeView()
     {
         _ = Task.Run(async () =>

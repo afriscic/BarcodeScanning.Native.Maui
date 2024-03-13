@@ -53,10 +53,10 @@ public partial class CameraViewHandler
             
             if (_captureSession.Inputs.Length == 0)
                 UpdateCamera();
-            if (_captureSession.Outputs.Length == 0)
-                UpdateAnalyzer();
             if (_captureSession.SessionPreset is null)
                 UpdateResolution();
+
+            UpdateAnalyzer();
 
             lock (_syncLock)
             {
@@ -126,9 +126,10 @@ public partial class CameraViewHandler
                     AlwaysDiscardsLateVideoFrames = true
                 };
                 
-                if (VirtualView is not null && _videoPreviewLayer is not null && _queue is not null)
+                if (_queue is not null)
                 {
                     _barcodeAnalyzer?.Dispose();
+                    _barcodeAnalyzer = null;
                     _barcodeAnalyzer = new BarcodeAnalyzer(VirtualView, _videoPreviewLayer, this);
                     _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, _queue);
                 }
@@ -209,9 +210,9 @@ public partial class CameraViewHandler
 
     private void HandleAimModeEnabled()
     {
-        if (_barcodeView is not null && VirtualView is not null)
+        if (_barcodeView is not null)
         {
-            if (VirtualView.AimMode)
+            if (VirtualView?.AimMode ?? false)
                 _barcodeView.AddAimingDot();
             else
                 _barcodeView.RemoveAimingDot();

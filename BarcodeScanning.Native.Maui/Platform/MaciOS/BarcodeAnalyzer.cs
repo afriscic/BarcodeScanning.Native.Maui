@@ -9,10 +9,10 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly CameraView _cameraView;
     private readonly CameraViewHandler _cameraViewHandler;
-    private readonly VNDetectBarcodesRequest _barcodeRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
 
     private HashSet<BarcodeResult> _barcodeResults;
+    private VNDetectBarcodesRequest _barcodeRequest;
 
     internal BarcodeAnalyzer(CameraView cameraView, AVCaptureVideoPreviewLayer previewLayer, CameraViewHandler cameraViewHandler)
     {
@@ -20,15 +20,6 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         _cameraViewHandler = cameraViewHandler;
         _previewLayer = previewLayer;
         _sequenceRequestHandler = new VNSequenceRequestHandler();
-        _barcodeRequest = new VNDetectBarcodesRequest((request, error) => 
-        {
-            if (error is null)
-                _barcodeResults = Methods.ProcessBarcodeResult(request.GetResults<VNBarcodeObservation>(), _previewLayer);
-        });
-
-        var selectedSymbologies = Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies);
-        if (selectedSymbologies is not null)
-            _barcodeRequest.Symbologies = selectedSymbologies;
     }
 
     public override void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
@@ -37,6 +28,19 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         {
             if (sampleBuffer is null || _cameraView.PauseScanning)
                 return;
+
+            if (_barcodeRequest is null)
+            {
+                _barcodeRequest = new VNDetectBarcodesRequest((request, error) => 
+                {
+                    if (error is null)
+                        _barcodeResults = Methods.ProcessBarcodeResult(request.GetResults<VNBarcodeObservation>(), _previewLayer);
+                });
+
+                var selectedSymbologies = Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies);
+                if (selectedSymbologies is not null)
+                _barcodeRequest.Symbologies = selectedSymbologies;
+            }
 
             _sequenceRequestHandler.Perform([_barcodeRequest], sampleBuffer, out _);
 
@@ -76,7 +80,16 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             }
             catch (Exception)
             {
-                MainThread.BeginInvokeOnMainThread(_cameraViewHandler.Start);
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    try 
+                    { 
+                        _cameraViewHandler.Start(); 
+                    } 
+                    catch (Exception) 
+                    { 
+                    } 
+                });
             }
         }
     }
@@ -85,8 +98,8 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     {
         if (disposing)
         {
-            _barcodeRequest.Dispose();
-            _sequenceRequestHandler.Dispose();
+            _barcodeRequest?.Dispose();
+            _sequenceRequestHandler?.Dispose();
         }
 
         base.Dispose(disposing);
