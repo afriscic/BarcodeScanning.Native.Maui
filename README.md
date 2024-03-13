@@ -3,7 +3,7 @@ Barcode scanning library based on native platform APIs for barcode detection:
 1. [Google ML Kit](https://developers.google.com/ml-kit)
 2. [Apple Vision framework](https://developer.apple.com/documentation/vision)
 
-This library was inspired by existing MAUI barcode scanning libraries: [BarcodeScanner.Mobile](https://github.com/JimmyPun610/BarcodeScanner.Mobile) & [Zxing.Net.MAUI](https://github.com/Redth/ZXing.Net.Maui), but comes with many code improvements and uses native ML APIs on both Android and iOS.
+This library was inspired by existing MAUI barcode scanning libraries: [BarcodeScanner.Mobile](https://github.com/JimmyPun610/BarcodeScanner.Mobile) & [Zxing.Net.MAUI](https://github.com/Redth/ZXing.Net.Maui), but comes with many code improvements and uses native ML APIs on both Android and iOS/macOS.
 
 ## Key features
 1. Uses native APIs for maximal performance and barcode readability,
@@ -36,8 +36,8 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     ```xml
     <uses-permission android:name="android.permission.CAMERA" />
     ```
-    #### iOS
-    Edit `info.plist` file (under the Platforms\iOS folder) and add the following permissions inside of the `dict` node:
+    #### iOS/macOS
+    Edit `info.plist` file (under the Platforms\iOS or Platforms\MacCatalyst folder) and add the following permissions inside of the `dict` node:
     ```xml
     <key>NSCameraUsageDescription</key>
     <string>Enable camera for barcode scanning.</string>
@@ -76,11 +76,11 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 ## Supported barcode symbologies
 #### Android
 1D: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, ITF, UPC-A, UPC-E; 2D: Aztec, Data Matrix, PDF417, QR Code
-#### iOS
-1D: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, GS1 DataBar, ITF, UPC-E; 2D: Aztec, Data Matrix, MicroPDF417, MicroQR, PDF417, QR Code
+#### iOS/macOS
+1D: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, GS1 DataBar, ITF, UPC-A, UPC-E; 2D: Aztec, Data Matrix, MicroPDF417, MicroQR, PDF417, QR Code
 
 ## Bindable properties
 A list of bindable properties with descriptions can be found in [CameraView.cs](https://github.com/afriscic/BarcodeScanning.Native.Maui/blob/master/BarcodeScanning.Native.Maui/CameraView.cs) source file.
 
-## TODO Windows and macOS support
-Windows and macOS are currently unsupported, but support can be added in the future. Vision framework is compatible with macOS so this implementation wouldn't be difficult. For Windows, barcode detection could be supported through [Zxing.Net](https://github.com/micjahn/ZXing.Net) project.
+## TODO Windows support
+Windows is currently unsupported, but support can be added in the future through [Zxing.Net](https://github.com/micjahn/ZXing.Net) project.

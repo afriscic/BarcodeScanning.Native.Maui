@@ -3,6 +3,7 @@ using CoreGraphics;
 using CoreImage;
 using Foundation;
 using Microsoft.Maui.Platform;
+using System.Text;
 using UIKit;
 using Vision;
 
@@ -42,14 +43,13 @@ public static partial class Methods
         
         foreach (var barcode in result)
         {
-            
             resultList.Add(new BarcodeResult()
             {
                 BarcodeType = BarcodeTypes.Unknown,
                 BarcodeFormat = ConvertFromIOSFormats(barcode.Symbology),
                 DisplayValue = barcode.PayloadStringValue,
                 RawValue = barcode.PayloadStringValue,
-                RawBytes = GetRawBytes(barcode) ?? System.Text.Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
+                RawBytes = GetRawBytes(barcode) ?? Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
                 BoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).ToRectangle() ?? barcode.BoundingBox.ToRectangle()
             });
         };
@@ -107,6 +107,8 @@ public static partial class Methods
             symbologiesList.Add(VNBarcodeSymbology.MicroPdf417);
         if (barcodeFormats.HasFlag(BarcodeFormats.QRCode))
             symbologiesList.Add(VNBarcodeSymbology.QR);
+        if (barcodeFormats.HasFlag(BarcodeFormats.Upca))
+            symbologiesList.Add(VNBarcodeSymbology.Ean13);
         if (barcodeFormats.HasFlag(BarcodeFormats.Upce))
             symbologiesList.Add(VNBarcodeSymbology.Upce);
 

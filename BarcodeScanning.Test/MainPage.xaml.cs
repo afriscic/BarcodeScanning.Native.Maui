@@ -15,6 +15,8 @@
             qualitys.Add("Highest");
 
             Quality.ItemsSource = qualitys;
+            if (DeviceInfo.Platform != DevicePlatform.MacCatalyst)
+                Quality.Title = "Quality";
         }
 
         protected override async void OnAppearing()

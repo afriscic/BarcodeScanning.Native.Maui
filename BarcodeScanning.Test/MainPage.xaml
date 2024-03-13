@@ -21,7 +21,7 @@
                       InputTransparent="True"/>
         
         <Grid ColumnDefinitions="*, *, *, *, *" AbsoluteLayout.LayoutFlags="All" AbsoluteLayout.LayoutBounds="0,0,1,0.1">
-            <Picker x:Name="Quality" Title="Quality" Grid.Column="2" BackgroundColor="Transparent"  WidthRequest="45" HeightRequest="45" SelectedIndexChanged="Quality_SelectedIndexChanged"/>
+            <Picker x:Name="Quality" Grid.Column="2" BackgroundColor="Transparent"  WidthRequest="45" HeightRequest="45" SelectedIndexChanged="Quality_SelectedIndexChanged"/>
 
             <Button Text="C" Grid.Column="0" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="CameraButton_Clicked"/>
             <Button Text="T" Grid.Column="1" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="TorchButton_Clicked"/>

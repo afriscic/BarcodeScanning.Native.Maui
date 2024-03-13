@@ -16,6 +16,7 @@ public partial class CameraViewHandler
     private BarcodeAnalyzer _barcodeAnalyzer;
     private BarcodeView _barcodeView;
     private UITapGestureRecognizer _uITapGestureRecognizer;
+    private NSObject _subjectAreaChangedNotificaion;
 
     private readonly object _syncLock = new();
     private readonly object _configLock = new();
@@ -34,7 +35,12 @@ public partial class CameraViewHandler
         };
         _barcodeView = new BarcodeView(_videoPreviewLayer);
         _barcodeView.AddGestureRecognizer(_uITapGestureRecognizer);
-
+        _subjectAreaChangedNotificaion = NSNotificationCenter.DefaultCenter.AddObserver(AVCaptureDevice.SubjectAreaDidChangeNotification, (n) => 
+        {
+            if (n.Name == AVCaptureDevice.SubjectAreaDidChangeNotification)
+                ResetFocus();
+        });
+        
         return _barcodeView;
     }
 
@@ -168,11 +174,7 @@ public partial class CameraViewHandler
 
                 if (_captureDevice is not null)
                 {
-                    if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                        CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus);
-                    else
-                        CaptureDeviceLock(() => _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus);
-
+                    ResetFocus();
                     _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
 
                     if (_captureSession.CanAddInput(_captureInput))
@@ -185,7 +187,7 @@ public partial class CameraViewHandler
             UpdateResolution();
         }
     }
-
+    
     private void UpdateTorch()
     {
         if (_captureDevice is not null && _captureDevice.HasTorch && _captureDevice.TorchAvailable)
@@ -223,12 +225,23 @@ public partial class CameraViewHandler
             CaptureDeviceLock(() =>
             {
                 _captureDevice.FocusPointOfInterest = _videoPreviewLayer.CaptureDevicePointOfInterestForPoint(_uITapGestureRecognizer.LocationInView(_barcodeView));
-                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                    _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
-                else
-                    _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+                _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+                _captureDevice.SubjectAreaChangeMonitoringEnabled = true;
             });
         }
+    }
+
+    private void ResetFocus()
+    {
+        CaptureDeviceLock(() => 
+        {
+            if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
+                _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
+            else
+                _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+            
+            _captureDevice.SubjectAreaChangeMonitoringEnabled = false;
+        });
     }
 
     private static NSString GetCaptureSessionResolution(CaptureQuality quality)
@@ -248,18 +261,20 @@ public partial class CameraViewHandler
         {
             lock (_configLock)
             {
-                try
+                if (_captureDevice?.LockForConfiguration(out _) ?? false)
                 {
-                    _captureDevice.LockForConfiguration(out _);
-                    handler();
-                }
-                catch (Exception)
-                {
-                        
-                }
-                finally
-                {
-                    _captureDevice?.UnlockForConfiguration();
+                    try
+                    {
+                        handler();
+                    }
+                    catch (Exception)
+                    {
+                            
+                    }
+                    finally
+                    {
+                        _captureDevice.UnlockForConfiguration();
+                    }
                 }
             }
         });
@@ -273,6 +288,8 @@ public partial class CameraViewHandler
     {
         this.Stop();
 
+        _subjectAreaChangedNotificaion?.Dispose();
+        _subjectAreaChangedNotificaion = null;
         _barcodeView?.Dispose();
         _barcodeView = null;
         _uITapGestureRecognizer?.Dispose();

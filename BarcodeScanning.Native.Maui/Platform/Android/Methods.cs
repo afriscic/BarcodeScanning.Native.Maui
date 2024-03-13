@@ -15,6 +15,11 @@ namespace BarcodeScanning;
 
 public static partial class Methods
 {
+    private static readonly ParallelOptions parallelOptions = new()
+    {
+        MaxDegreeOfParallelism = Environment.ProcessorCount * 2
+    };
+
     public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
         => await ProcessBitmap(await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length));
     public static async Task<HashSet<BarcodeResult>> ScanFromImage(FileResult file)
@@ -38,11 +43,22 @@ public static partial class Methods
     internal static void InvertLuminance(Image image)
     {
         var yBuffer = image.GetPlanes()[0].Buffer;
-        using (var bits = BitSet.ValueOf(yBuffer))
+        if (yBuffer.IsDirect)
         {
-            bits.Flip(0, bits.Length());
-            yBuffer.Rewind();
-            yBuffer.Put(bits.ToByteArray());
+            unsafe
+            {
+                ulong* data = (ulong*)yBuffer.GetDirectBufferAddress();
+                Parallel.For(0, yBuffer.Capacity() / 8, parallelOptions, (i) => data[i] = ~data[i]);
+            }
+        }
+        else
+        {
+            using (var bits = BitSet.ValueOf(yBuffer))
+            {
+                bits.Flip(0, bits.Length());
+                yBuffer.Rewind();
+                yBuffer.Put(bits.ToByteArray());
+            }
         }
     }
 
