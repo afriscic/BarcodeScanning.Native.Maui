@@ -102,7 +102,7 @@ public partial class CameraViewHandler
     //https://developer.android.com/reference/androidx/camera/mlkit/vision/MlKitAnalyzer
     private void UpdateAnalyzer()
     {
-        if (_cameraController is not null && _cameraExecutor is not null && VirtualView is not null && _previewView is not null)
+        if (_cameraController is not null && _cameraExecutor is not null && ((IViewHandler)this).VirtualView is not null && _previewView is not null)
         {
             _cameraController.ClearImageAnalysisAnalyzer();
             _barcodeAnalyzer?.Dispose();
