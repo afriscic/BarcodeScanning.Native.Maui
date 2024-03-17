@@ -25,25 +25,25 @@ public static partial class Methods
             return null;
         
         VNBarcodeObservation[] observations = null;
-        var barcodeRequest = new VNDetectBarcodesRequest((request, error) => {
+        using var barcodeRequest = new VNDetectBarcodesRequest((request, error) => {
             if (error is null)
                 observations = request.GetResults<VNBarcodeObservation>();
         });
-        var handler = new VNImageRequestHandler(image.CGImage, new NSDictionary());
+        using var handler = new VNImageRequestHandler(image.CGImage, new NSDictionary());
         await Task.Run(() => handler.Perform([barcodeRequest], out _));
-        return ProcessBarcodeResult(observations);
+        var barcodeResults = new HashSet<BarcodeResult>();
+        ProcessBarcodeResult(observations, barcodeResults);
+        return barcodeResults;
     }
 
-    internal static HashSet<BarcodeResult> ProcessBarcodeResult(VNBarcodeObservation[] result, AVCaptureVideoPreviewLayer previewLayer = null)
+    internal static void ProcessBarcodeResult(VNBarcodeObservation[] inputResults, HashSet<BarcodeResult> outputResults, AVCaptureVideoPreviewLayer previewLayer = null)
     {
-        var resultList = new HashSet<BarcodeResult>();
-
-        if (result is null || result.Length == 0)
-            return resultList;
+        if (inputResults is null || inputResults.Length == 0)
+            return;
         
-        foreach (var barcode in result)
+        foreach (var barcode in inputResults)
         {
-            resultList.Add(new BarcodeResult()
+            outputResults.Add(new BarcodeResult()
             {
                 BarcodeType = BarcodeTypes.Unknown,
                 BarcodeFormat = ConvertFromIOSFormats(barcode.Symbology),
@@ -53,8 +53,6 @@ public static partial class Methods
                 BoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).ToRectangle() ?? barcode.BoundingBox.ToRectangle()
             });
         };
-
-        return resultList;
     }
 
     internal static VNBarcodeSymbology[] SelectedSymbologies(BarcodeFormats barcodeFormats)

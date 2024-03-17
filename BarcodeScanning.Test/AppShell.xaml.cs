@@ -1,10 +1,11 @@
-﻿namespace BarcodeScanning.Test
+﻿namespace BarcodeScanning.Test;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
-    {
-        public AppShell()
-        {
-            InitializeComponent();
-        }
-    }
+	public AppShell()
+	{
+		Routing.RegisterRoute(nameof(ScanPage), typeof(ScanPage));
+
+		InitializeComponent();
+	}
 }

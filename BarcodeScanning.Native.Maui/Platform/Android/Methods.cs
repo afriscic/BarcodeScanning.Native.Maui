@@ -33,11 +33,42 @@ public static partial class Methods
         if (bitmap is null)
             return null;
 
-        var image = InputImage.FromBitmap(bitmap, 0);
-        var scanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
+        var barcodeResults = new HashSet<BarcodeResult>();
+        using var image = InputImage.FromBitmap(bitmap, 0);
+        using var scanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Barcode.FormatAllFormats)
             .Build());
-        return ProcessBarcodeResult(await scanner.Process(image));
+        ProcessBarcodeResult(await scanner.Process(image), barcodeResults);
+        return barcodeResults;
+    }
+    
+    internal static void ProcessBarcodeResult(Java.Lang.Object inputResults, HashSet<BarcodeResult> outputResults, CoordinateTransform transform = null)
+    {
+        if (inputResults is null)
+            return;
+        using var javaList = inputResults.JavaCast<ArrayList>();
+        if (javaList?.IsEmpty ?? true)
+            return;
+
+        foreach (var barcode in javaList.ToArray())
+        {
+            using var mapped = barcode.JavaCast<Barcode>();
+            if (mapped is null)
+                continue;
+
+            using var rectF = mapped.BoundingBox.AsRectF();
+            transform?.MapRect(rectF);
+
+            outputResults.Add(new BarcodeResult()
+            {
+                BarcodeType = ConvertBarcodeResultTypes(mapped.ValueType),
+                BarcodeFormat = (BarcodeFormats)mapped.Format,
+                DisplayValue = mapped.DisplayValue,
+                RawValue = mapped.RawValue,
+                RawBytes = mapped.GetRawBytes(),
+                BoundingBox = rectF.AsRectangleF()
+            });
+        }
     }
 
     internal static void InvertLuminance(Image image)
@@ -53,12 +84,10 @@ public static partial class Methods
         }
         else
         {
-            using (var bits = BitSet.ValueOf(yBuffer))
-            {
-                bits.Flip(0, bits.Length());
-                yBuffer.Rewind();
-                yBuffer.Put(bits.ToByteArray());
-            }
+            using var bits = BitSet.ValueOf(yBuffer);
+            bits.Flip(0, bits.Length());
+            yBuffer.Rewind();
+            yBuffer.Put(bits.ToByteArray());
         }
     }
 
@@ -117,36 +146,6 @@ public static partial class Methods
         if (barcodeFormats.HasFlag(BarcodeFormats.All))
             formats = Barcode.FormatAllFormats;
         return formats;
-    }
-
-    internal static HashSet<BarcodeResult> ProcessBarcodeResult(Java.Lang.Object result, CoordinateTransform transform = null)
-    {
-        var resultList = new HashSet<BarcodeResult>();
-
-        if (result is null)
-            return resultList;
-        var javaList = result.JavaCast<ArrayList>();
-        if (javaList.IsEmpty)
-            return resultList;
-
-        foreach (var barcode in javaList.ToArray())
-        {
-            var mapped = barcode.JavaCast<Barcode>();
-            var rectF = mapped.BoundingBox.AsRectF();
-            
-            transform?.MapRect(rectF);
-
-            resultList.Add(new BarcodeResult()
-            {
-                BarcodeType = ConvertBarcodeResultTypes(mapped.ValueType),
-                BarcodeFormat = (BarcodeFormats)mapped.Format,
-                DisplayValue = mapped.DisplayValue,
-                RawValue = mapped.RawValue,
-                RawBytes = mapped.GetRawBytes(),
-                BoundingBox = rectF.AsRectangleF()
-            });
-        }
-        return resultList;
     }
 
     internal static Size TargetResolution(CaptureQuality? captureQuality)

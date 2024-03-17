@@ -208,27 +208,12 @@ public partial class CameraView : View
 
     public CameraView()
     {
-        this.Loaded += CameraView_Loaded;
-        this.Unloaded += CameraView_Unloaded;
-
         _pooledResults = new();
         _poolingTimer = new()
         {
             AutoReset = false
         };
         _poolingTimer.Elapsed += PoolingTimer_Elapsed;
-    }
-
-    private void CameraView_Loaded(object sender, EventArgs e)
-    {
-        if (this.Handler is not null)
-            DeviceDisplay.Current.MainDisplayInfoChanged += ((CameraViewHandler)this.Handler).Current_MainDisplayInfoChanged;
-    }
-
-    private void CameraView_Unloaded(object sender, EventArgs e)
-    {
-        if (this.Handler is not null)
-            DeviceDisplay.Current.MainDisplayInfoChanged -= ((CameraViewHandler)this.Handler).Current_MainDisplayInfoChanged;
     }
 
     internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults)
@@ -265,19 +250,26 @@ public partial class CameraView : View
         _pooledResults.Clear();
     }
 
-    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barCodeResults)
+    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults)
     {
+        if (PauseScanning)
+            return;
+            
         try
         {
-            if (VibrationOnDetected && barCodeResults.Count > 0)
+            if (VibrationOnDetected && barcodeResults.Count > 0)
                 Vibration.Vibrate();
         }
         catch (Exception)
         {
-
         }
 
-        var results = barCodeResults.ToHashSet();
+        BarcodeResult[] results;
+        if (barcodeResults.Count == 0)
+            results = [];
+        else
+            results = [.. barcodeResults];
+        
         MainThread.BeginInvokeOnMainThread(() =>
         {
             OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = results });

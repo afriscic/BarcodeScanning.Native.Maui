@@ -6,47 +6,47 @@ namespace BarcodeScanning;
 
 internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 {
-    private readonly AVCaptureVideoPreviewLayer _previewLayer;
+    private readonly HashSet<BarcodeResult> _barcodeResults;
+    private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
-    private readonly CameraViewHandler _cameraViewHandler;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
 
-    private HashSet<BarcodeResult> _barcodeResults;
     private VNDetectBarcodesRequest _barcodeRequest;
 
-    internal BarcodeAnalyzer(CameraView cameraView, AVCaptureVideoPreviewLayer previewLayer, CameraViewHandler cameraViewHandler)
+    internal BarcodeAnalyzer(CameraView cameraView, BarcodeView barcodeView)
     {
+        _barcodeView = barcodeView;
         _cameraView = cameraView;
-        _cameraViewHandler = cameraViewHandler;
-        _previewLayer = previewLayer;
-        _sequenceRequestHandler = new VNSequenceRequestHandler();
+
+        _barcodeResults = [];
+        _sequenceRequestHandler = new();
     }
 
     public override void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
     {
         try
         {
-            if (sampleBuffer is null || _cameraView.PauseScanning)
-                return;
-
             if (_barcodeRequest is null)
             {
                 _barcodeRequest = new VNDetectBarcodesRequest((request, error) => 
                 {
                     if (error is null)
-                        _barcodeResults = Methods.ProcessBarcodeResult(request.GetResults<VNBarcodeObservation>(), _previewLayer);
+                        Methods.ProcessBarcodeResult(request.GetResults<VNBarcodeObservation>(), _barcodeResults, _barcodeView.PreviewLayer);
                 });
 
                 var selectedSymbologies = Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies);
                 if (selectedSymbologies is not null)
-                _barcodeRequest.Symbologies = selectedSymbologies;
+                    _barcodeRequest.Symbologies = selectedSymbologies;
             }
+
+            if (sampleBuffer is null || _cameraView.PauseScanning)
+                return;
 
             _sequenceRequestHandler.Perform([_barcodeRequest], sampleBuffer, out _);
 
             if (_cameraView.AimMode)
             {
-                var previewCenter = new Point(_previewLayer.Bounds.Width / 2, _previewLayer.Bounds.Height / 2);
+                var previewCenter = new Point(_barcodeView.PreviewLayer.Bounds.Width / 2, _barcodeView.PreviewLayer.Bounds.Height / 2);
 
                 foreach (var barcode in _barcodeResults)
                 {
@@ -57,7 +57,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 
             if (_cameraView.ViewfinderMode)
             {
-                var previewRect = new RectF(0, 0, (float)_previewLayer.Bounds.Width, (float)_previewLayer.Bounds.Height);
+                var previewRect = new RectF(0, 0, (float)_barcodeView.PreviewLayer.Bounds.Width, (float)_barcodeView.PreviewLayer.Bounds.Height);
 
                 foreach (var barcode in _barcodeResults)
                 {
@@ -66,8 +66,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-            if (_barcodeResults is not null && _cameraView is not null)
-                _cameraView.DetectionFinished(_barcodeResults);
+            _cameraView?.DetectionFinished(_barcodeResults);
         }
         catch (Exception)
         {
@@ -76,6 +75,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         {
             try
             {
+                _barcodeResults.Clear();
                 sampleBuffer?.Dispose();
             }
             catch (Exception)
@@ -84,7 +84,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 {
                     try 
                     { 
-                        _cameraViewHandler.Start(); 
+                        _barcodeView?.Start(); 
                     } 
                     catch (Exception) 
                     { 
@@ -98,8 +98,14 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     {
         if (disposing)
         {
-            _barcodeRequest?.Dispose();
-            _sequenceRequestHandler?.Dispose();
+            try
+            {
+                _barcodeRequest?.Dispose();
+                _sequenceRequestHandler?.Dispose();
+            }
+            catch (Exception)
+            {
+            }
         }
 
         base.Dispose(disposing);
