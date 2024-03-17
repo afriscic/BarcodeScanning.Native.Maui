@@ -15,6 +15,7 @@
                             ForceInverted="True"
                             TapToFocusEnabled="True"
                             BarcodeSymbologies="All"
+                            AimMode="True"
                             x:Name="Barcode"/>
         
         <GraphicsView AbsoluteLayout.LayoutFlags="All"

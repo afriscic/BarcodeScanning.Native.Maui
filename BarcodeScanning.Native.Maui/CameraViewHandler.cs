@@ -4,7 +4,7 @@ namespace BarcodeScanning;
 
 public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
 {
-    private BarcodeView _barcodeView;
+    private BarcodeView _barcodeView = null;
 
     public static readonly PropertyMapper<CameraView, CameraViewHandler> CameraViewMapper = new()
     {
