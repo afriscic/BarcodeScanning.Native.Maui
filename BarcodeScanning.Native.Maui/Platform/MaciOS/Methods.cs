@@ -11,15 +11,15 @@ namespace BarcodeScanning;
 
 public static partial class Methods
 {
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
-        => await ProcessImage(UIImage.LoadFromData(NSData.FromArray(imageArray)));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(FileResult file)
-        => await ProcessImage(UIImage.LoadFromData(NSData.FromStream(await file.OpenReadAsync())));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(string url)
-        => await ProcessImage(UIImage.LoadFromData(NSData.FromUrl(new NSUrl(url))));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(Stream stream)
-        => await ProcessImage(UIImage.LoadFromData(NSData.FromStream(stream)));
-    private static async Task<HashSet<BarcodeResult>> ProcessImage(UIImage image)
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
+        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromArray(imageArray)));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(FileResult file)
+        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(await file.OpenReadAsync())));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(string url)
+        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromUrl(new NSUrl(url))));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(Stream stream)
+        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(stream)));
+    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(UIImage image)
     {
         if (image is null)
             return null;

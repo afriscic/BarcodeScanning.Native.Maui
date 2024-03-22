@@ -21,9 +21,10 @@ public class BarcodeView : CoordinatorLayout
     private readonly CameraView _cameraView;
     private readonly Context _context;
     private readonly ImageView _imageView;
-    private readonly PreviewView _previewView;
     private readonly LifecycleCameraController _cameraController;
+    private readonly PreviewView _previewView;
     private readonly RelativeLayout _relativeLayout;
+    private readonly ZoomStateObserver _zoomStateObserver;
 
     private bool _cameraRunning = false;
 
@@ -31,19 +32,20 @@ public class BarcodeView : CoordinatorLayout
     {
         _context = context;
         _cameraView = cameraView;
+        _zoomStateObserver = new ZoomStateObserver(_cameraView);
         _cameraController = new LifecycleCameraController(_context)
         {
             TapToFocusEnabled = _cameraView?.TapToFocusEnabled ?? false,
             ImageAnalysisBackpressureStrategy = ImageAnalysis.StrategyKeepOnlyLatest
         };
         _cameraController.SetEnabledUseCases(CameraController.ImageAnalysis);
+        _cameraController.ZoomState.ObserveForever(_zoomStateObserver);
         _previewView = new PreviewView(_context)
         {
             Controller = _cameraController,
             LayoutParameters = new RelativeLayout.LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
         _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
-        _previewView.SetImplementationMode(PreviewView.ImplementationMode.Performance);
 
         var layoutParams = new RelativeLayout.LayoutParams(LayoutParams.WrapContent, LayoutParams.WrapContent);
         layoutParams.AddRule(LayoutRules.CenterInParent);
@@ -67,8 +69,11 @@ public class BarcodeView : CoordinatorLayout
     { 
         if (_cameraController is not null)
         {
-            _cameraController.Unbind();
-            _cameraRunning = false;
+            if (_cameraRunning)
+            {
+                _cameraController.Unbind();
+                _cameraRunning = false;
+            }
 
             ILifecycleOwner lifecycleOwner = null;
             if (_context is ILifecycleOwner)
@@ -88,9 +93,11 @@ public class BarcodeView : CoordinatorLayout
 
             UpdateAnalyzer();
             UpdateTorch();
-
+            
             _cameraController.BindToLifecycle(lifecycleOwner);
             _cameraRunning = true;
+
+            UpdateZoomFactor();
         }
     }
 
@@ -129,6 +136,8 @@ public class BarcodeView : CoordinatorLayout
                 _cameraController.CameraSelector = CameraSelector.DefaultFrontCamera;
             else
                 _cameraController.CameraSelector = CameraSelector.DefaultBackCamera;
+
+            _cameraView?.ResetRequestZoomFactor();
         }
     }
 
@@ -147,6 +156,25 @@ public class BarcodeView : CoordinatorLayout
     {
         if (_cameraController is not null)
             _cameraController.EnableTorch(_cameraView?.TorchOn ?? false);
+    }
+
+    internal void UpdateZoomFactor()
+    {
+        var factor = _cameraView?.RequestZoomFactor ?? -1;
+
+        if (factor < 0)
+            return;
+
+        var minValue = _cameraView?.MinZoomFactor ?? -1;
+        var maxValue = _cameraView?.MaxZoomFactor ?? -1;
+
+        if (factor < minValue)
+            factor = minValue;
+        if (factor > maxValue)
+            factor = maxValue;
+        
+        if (factor > 0 && _cameraController is not null)
+            _cameraController.SetZoomRatio(factor);
     }
 
     internal void HandleCameraEnabled()
@@ -223,13 +251,15 @@ public class BarcodeView : CoordinatorLayout
 
                 Stop();
 
-                this.RemoveAllViews();
-                _relativeLayout.RemoveAllViews();
+                this?.RemoveAllViews();
+                _relativeLayout?.RemoveAllViews();
+                _cameraController?.ZoomState.RemoveObserver(_zoomStateObserver);
 
                 _relativeLayout?.Dispose();
                 _imageView?.Dispose();
                 _previewView?.Dispose();
                 _cameraController?.Dispose();
+                _zoomStateObserver.Dispose();
                 _barcodeAnalyzer?.Dispose();
             }
             catch (Exception)

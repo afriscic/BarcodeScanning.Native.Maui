@@ -20,15 +20,15 @@ public static partial class Methods
         MaxDegreeOfParallelism = Environment.ProcessorCount * 2
     };
 
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(byte[] imageArray)
-        => await ProcessBitmap(await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(FileResult file)
-        => await ProcessBitmap(await BitmapFactory.DecodeStreamAsync(await file.OpenReadAsync()));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(string url)
-        => await ProcessBitmap(await BitmapFactory.DecodeStreamAsync(new URL(url).OpenStream()));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImage(Stream stream)
-        => await ProcessBitmap(await BitmapFactory.DecodeStreamAsync(stream));
-    private static async Task<HashSet<BarcodeResult>> ProcessBitmap(Bitmap bitmap)
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
+        => await ProcessBitmapAsync(await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(FileResult file)
+        => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(await file.OpenReadAsync()));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(string url)
+        => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(new URL(url).OpenStream()));
+    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(Stream stream)
+        => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(stream));
+    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(Bitmap bitmap)
     {
         if (bitmap is null)
             return null;

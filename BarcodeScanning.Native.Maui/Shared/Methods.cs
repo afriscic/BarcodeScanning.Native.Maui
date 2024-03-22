@@ -17,7 +17,6 @@ public static partial class Methods
         }
         catch (Exception)
         {
-
         }
         return false;
     }

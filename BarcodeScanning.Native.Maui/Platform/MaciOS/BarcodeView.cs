@@ -65,6 +65,8 @@ public class BarcodeView : UIView
             {
                 _captureSession.StartRunning();
             }
+
+            UpdateZoomFactor();
         }
     }
 
@@ -166,9 +168,8 @@ public class BarcodeView : UIView
 
                 if (_captureDevice is not null)
                 {
-                    ResetFocus();
                     _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
-
+                    
                     if (_captureSession.CanAddInput(_captureInput))
                         _captureSession.AddInput(_captureInput);
                 }
@@ -176,7 +177,11 @@ public class BarcodeView : UIView
                 _captureSession.CommitConfiguration();
             }
 
+            ReportZoomFactors();
+            ResetFocus();
             UpdateResolution();
+
+            _cameraView?.ResetRequestZoomFactor();
         }
     }
     internal void UpdateTorch()
@@ -196,6 +201,27 @@ public class BarcodeView : UIView
                         _captureDevice.TorchMode = AVCaptureTorchMode.Off;
                 });
         }
+    }
+
+    internal void UpdateZoomFactor()
+    {
+        var factor = _cameraView?.RequestZoomFactor ?? -1;
+
+        if (factor < 0)
+            return;
+
+        var minValue = _cameraView?.MinZoomFactor ?? -1;
+        var maxValue = _cameraView?.MaxZoomFactor ?? -1;
+
+        if (factor < minValue)
+            factor = minValue;
+        if (factor > maxValue)
+            factor = maxValue;
+        
+        if (factor > 0 && _captureDevice is not null)
+            CaptureDeviceLock(() => _captureDevice.VideoZoomFactor = factor);
+
+        ReportZoomFactors();
     }
 
     internal void HandleCameraEnabled()
@@ -247,15 +273,18 @@ public class BarcodeView : UIView
 
     private void ResetFocus()
     {
-        CaptureDeviceLock(() => 
+        if (_captureDevice is not null)
         {
-            if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
-            else
-                _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
-            
-            _captureDevice.SubjectAreaChangeMonitoringEnabled = false;
-        });
+            CaptureDeviceLock(() => 
+            {
+                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
+                    _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
+                else
+                    _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+                
+                _captureDevice.SubjectAreaChangeMonitoringEnabled = false;
+            });
+        }
     }
 
     private static NSString GetCaptureSessionResolution(CaptureQuality quality)
@@ -292,6 +321,20 @@ public class BarcodeView : UIView
                 }
             }
         });
+    }
+
+    private void ReportZoomFactors()
+    {
+        try
+        {
+            _cameraView.CurrentZoomFactor = (float)_captureDevice.VideoZoomFactor;
+            _cameraView.MinZoomFactor = (float)_captureDevice.MinAvailableVideoZoomFactor;
+            _cameraView.MaxZoomFactor = (float)_captureDevice.MaxAvailableVideoZoomFactor;
+            _cameraView.DeviceSwitchZoomFactor = _captureDevice.VirtualDeviceSwitchOverVideoZoomFactors.Select(s => (float)s).ToArray();
+        }
+        catch (Exception)
+        {
+        }
     }
 
     public override void LayoutSubviews()
