@@ -4,6 +4,7 @@ public partial class CameraViewHandler
 {
     protected override BarcodeView CreatePlatformView()
     {   
-        return new BarcodeView(VirtualView);
+        _cameraManager = new CameraManager(VirtualView);
+        return _cameraManager.BarcodeView;
     }
 }

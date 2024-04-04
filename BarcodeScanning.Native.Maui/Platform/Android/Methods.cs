@@ -8,6 +8,7 @@ using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
+
 using Image = Android.Media.Image;
 using Size = Android.Util.Size;
 

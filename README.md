@@ -52,7 +52,34 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     xmlns:scanner="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
     ```
 5. Set the `CameraEnabled` property to `true` in XAML, code behind or ViewModel to start the camera. As a best practice set it in `OnAppearing()` method override in your ContentPage.
-6. Listen to `OnDetectionFinished` event in Code-behind or bind `OnDetectionFinishedCommand` property to a Command in your ViewModel.
+6. Listen to `OnDetectionFinished` event in Code-behind:
+    ```xaml
+    <scanner:CameraView ...
+                        OnDetectionFinished="CameraView_OnDetectionFinished"
+                        .../>
+    ```
+    ```csharp
+    private void CameraView_OnDetectionFinished(object sender, OnDetectionFinishedEventArg e)
+    {
+        if (e.Length > 0)
+            ...
+    }
+    ```
+    or bind `OnDetectionFinishedCommand` property to a Command in your ViewModel:
+    ```xaml
+    <scanner:CameraView ...
+                        OnDetectionFinishedCommand="DetectionFinishedCommand"
+                        .../>
+    ```
+    ```csharp
+    public ICommand DetectionFinishedCommand { get; set; }
+    ...
+    DetectionFinishedCommand = new Command<BarcodeResult[]>(BarcodeResult[] result) =>
+    {
+        if (result.Length > 0)
+            ...
+    }
+    ```
 7. As a best practice set the `CameraEnabled` property to `false` in `OnDisappearing()` method override in your ContentPage.
 8. From version 1.2.2 automatic disposing of `CameraView` is disabled! If a page gets regullary disposed, to prevent memory leaks add a listener to `Unloaded` event on your `ContentPage`. 
 
@@ -63,9 +90,9 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     <ContentPage ...
                  Unloaded="ContentPage_Unloaded"
                  ...>
-    ...
-            <scanner:CameraView x:Name="BarcodeView"
-                                .../>
+
+        <scanner:CameraView x:Name="BarcodeView"
+                            .../>
     ```
     ```csharp
     private void ContentPage_Unloaded(object sender, EventArgs e)

@@ -6,7 +6,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Version>1.4.1</Version>
+		<Version>1.4.2</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -40,7 +40,7 @@
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-android'">
-		<PackageReference Include="Xamarin.Google.MLKit.BarcodeScanning" Version="117.2.0.3" />
+		<PackageReference Include="Xamarin.Google.MLKit.BarcodeScanning" Version="117.2.0.4" />
 		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.3.2" />
 		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.3.2" />
 		
