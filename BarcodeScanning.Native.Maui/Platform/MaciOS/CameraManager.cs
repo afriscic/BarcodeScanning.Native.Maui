@@ -23,6 +23,7 @@ internal class CameraManager : IDisposable
     private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
     private readonly CAShapeLayer _shapeLayer;
+    private readonly DispatchQueue _cameraQueue;
     private readonly NSObject _subjectAreaChangedNotificaion;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
     private readonly UITapGestureRecognizer _uITapGestureRecognizer;
@@ -39,6 +40,7 @@ internal class CameraManager : IDisposable
         
         _captureSession = new AVCaptureSession();
         _sequenceRequestHandler = new VNSequenceRequestHandler();
+        _cameraQueue = new DispatchQueue("CameraQueue");
         _detectBarcodesRequest = new VNDetectBarcodesRequest((request, error) => 
         {
             if (error is null)
@@ -313,7 +315,7 @@ internal class CameraManager : IDisposable
                 {
                     if (_captureSession.Outputs.Contains(_videoDataOutput))
                         _captureSession.RemoveOutput(_videoDataOutput);
-
+                    
                     _videoDataOutput.Dispose();
                 }
 
@@ -324,7 +326,7 @@ internal class CameraManager : IDisposable
                 
                 _barcodeAnalyzer?.Dispose();
                 _barcodeAnalyzer = new BarcodeAnalyzer(this);
-                _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.MainQueue);
+                _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, _cameraQueue);
                 
                 if (_captureSession.CanAddOutput(_videoDataOutput))
                     _captureSession.AddOutput(_videoDataOutput);
@@ -415,6 +417,7 @@ internal class CameraManager : IDisposable
             _detectBarcodesRequest?.Dispose();
             _uITapGestureRecognizer?.Dispose();
             _subjectAreaChangedNotificaion?.Dispose();
+            _cameraQueue.Dispose();
         }
     }
 }
