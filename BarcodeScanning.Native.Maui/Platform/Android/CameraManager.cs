@@ -5,7 +5,6 @@ using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
 using AndroidX.Camera.View.Transform;
-using AndroidX.Core.Content;
 using AndroidX.Lifecycle;
 using Java.Util.Concurrent;
 using Xamarin.Google.MLKit.Vision.BarCode;
@@ -223,7 +222,7 @@ internal class CameraManager : IDisposable
 
     internal async Task PerformBarcodeDetection(IImageProxy proxy)
     {
-        if (_cameraView?.PauseScanning ?? true)
+        if (_cameraView.PauseScanning)
             return;
 
         _barcodeResults.Clear();
@@ -271,7 +270,7 @@ internal class CameraManager : IDisposable
             }
         }
 
-        _cameraView?.DetectionFinished(_barcodeResults);
+        _cameraView.DetectionFinished(_barcodeResults);
     }
 
     private void UpdateOutput()

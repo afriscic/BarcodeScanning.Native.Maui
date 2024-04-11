@@ -15,19 +15,18 @@ internal class CameraManager : IDisposable
 
     private AVCaptureDevice _captureDevice;
     private AVCaptureInput _captureInput;
-    private AVCaptureVideoDataOutput _videoDataOutput;
     private BarcodeAnalyzer _barcodeAnalyzer;
 
+    private readonly AVCaptureVideoDataOutput _videoDataOutput;
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly AVCaptureSession _captureSession;
     private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
     private readonly CAShapeLayer _shapeLayer;
-    private readonly DispatchQueue _cameraQueue;
     private readonly NSObject _subjectAreaChangedNotificaion;
+    private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
     private readonly UITapGestureRecognizer _uITapGestureRecognizer;
-    private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
 
     private readonly HashSet<BarcodeResult> _barcodeResults = [];
     private readonly object _syncLock = new();
@@ -40,7 +39,10 @@ internal class CameraManager : IDisposable
         
         _captureSession = new AVCaptureSession();
         _sequenceRequestHandler = new VNSequenceRequestHandler();
-        _cameraQueue = new DispatchQueue("CameraQueue");
+        _videoDataOutput = new AVCaptureVideoDataOutput()
+        {
+            AlwaysDiscardsLateVideoFrames = true
+        };
         _detectBarcodesRequest = new VNDetectBarcodesRequest((request, error) => 
         {
             if (error is null)
@@ -82,6 +84,12 @@ internal class CameraManager : IDisposable
                 UpdateCamera();
             if (_captureSession.SessionPreset is null)
                 UpdateResolution();
+            if (!_captureSession.Outputs.Contains(_videoDataOutput) && _captureSession.CanAddOutput(_videoDataOutput))
+            {
+                _captureSession.BeginConfiguration();
+                _captureSession.AddOutput(_videoDataOutput);
+                _captureSession.CommitConfiguration();
+            }
             
             UpdateOutput();
             UpdateAnalyzer();
@@ -243,7 +251,7 @@ internal class CameraManager : IDisposable
 
     internal void PerformBarcodeDetection(CMSampleBuffer sampleBuffer)
     {
-        if (_cameraView?.PauseScanning ?? true)
+        if (_cameraView.PauseScanning)
             return;
 
         _barcodeResults.Clear();
@@ -305,34 +313,12 @@ internal class CameraManager : IDisposable
 
     private void UpdateOutput()
     {
-        if (_captureSession is not null)
+        if (_videoDataOutput is not null)
         {
-            lock (_syncLock)
-            {
-                _captureSession.BeginConfiguration();
-
-                if (_videoDataOutput is not null)
-                {
-                    if (_captureSession.Outputs.Contains(_videoDataOutput))
-                        _captureSession.RemoveOutput(_videoDataOutput);
-                    
-                    _videoDataOutput.Dispose();
-                }
-
-                _videoDataOutput = new AVCaptureVideoDataOutput()
-                {
-                    AlwaysDiscardsLateVideoFrames = true
-                };
-                
-                _barcodeAnalyzer?.Dispose();
-                _barcodeAnalyzer = new BarcodeAnalyzer(this);
-                _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, _cameraQueue);
-                
-                if (_captureSession.CanAddOutput(_videoDataOutput))
-                    _captureSession.AddOutput(_videoDataOutput);
-
-                _captureSession.CommitConfiguration();
-            }
+            _videoDataOutput.SetSampleBufferDelegate(null, null);
+            _barcodeAnalyzer?.Dispose();
+            _barcodeAnalyzer = new BarcodeAnalyzer(this);
+            _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
         }
     }
 
@@ -364,7 +350,7 @@ internal class CameraManager : IDisposable
     {
         if (_cameraView is not null && _captureDevice is not null)
         {
-            _cameraView.CurrentZoomFactor = (float)_captureDevice?.VideoZoomFactor;
+            _cameraView.CurrentZoomFactor = (float)_captureDevice.VideoZoomFactor;
             _cameraView.MinZoomFactor = (float)_captureDevice.MinAvailableVideoZoomFactor;
             _cameraView.MaxZoomFactor = (float)_captureDevice.MaxAvailableVideoZoomFactor;
             _cameraView.DeviceSwitchZoomFactor = _captureDevice.VirtualDeviceSwitchOverVideoZoomFactors.Select(s => (float)s).ToArray();
@@ -399,6 +385,8 @@ internal class CameraManager : IDisposable
                 NSNotificationCenter.DefaultCenter.RemoveObserver(_subjectAreaChangedNotificaion);
             if (_uITapGestureRecognizer is not null)
                 _barcodeView?.RemoveGestureRecognizer(_uITapGestureRecognizer);
+
+            _videoDataOutput?.SetSampleBufferDelegate(null, null);
             
             _previewLayer?.RemoveFromSuperLayer();
             _shapeLayer?.RemoveFromSuperLayer();
@@ -417,7 +405,6 @@ internal class CameraManager : IDisposable
             _detectBarcodesRequest?.Dispose();
             _uITapGestureRecognizer?.Dispose();
             _subjectAreaChangedNotificaion?.Dispose();
-            _cameraQueue.Dispose();
         }
     }
 }
