@@ -5,8 +5,8 @@ using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
 using AndroidX.Camera.View.Transform;
-using AndroidX.Core.Content;
 using AndroidX.Lifecycle;
+using Java.Util.Concurrent;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 using static Android.Views.ViewGroup;
@@ -28,6 +28,7 @@ internal class CameraManager : IDisposable
     private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
     private readonly Context _context;
+    private readonly IExecutorService _cameraExecutor;
     private readonly ImageView _imageView;
     private readonly LifecycleCameraController _cameraController;
     private readonly PreviewView _previewView;
@@ -43,6 +44,7 @@ internal class CameraManager : IDisposable
         _context = context;
         _cameraView = cameraView;
 
+        _cameraExecutor = Executors.NewSingleThreadExecutor();
         _zoomStateObserver = new ZoomStateObserver(_cameraView);
         _cameraController = new LifecycleCameraController(_context)
         {
@@ -220,7 +222,7 @@ internal class CameraManager : IDisposable
 
     internal async Task PerformBarcodeDetection(IImageProxy proxy)
     {
-        if (_cameraView?.PauseScanning ?? true)
+        if (_cameraView.PauseScanning)
             return;
 
         _barcodeResults.Clear();
@@ -268,7 +270,7 @@ internal class CameraManager : IDisposable
             }
         }
 
-        _cameraView?.DetectionFinished(_barcodeResults);
+        _cameraView.DetectionFinished(_barcodeResults);
     }
 
     private void UpdateOutput()
@@ -278,7 +280,7 @@ internal class CameraManager : IDisposable
             _cameraController.ClearImageAnalysisAnalyzer();
             _barcodeAnalyzer?.Dispose();
             _barcodeAnalyzer = new BarcodeAnalyzer(this);
-            _cameraController.SetImageAnalysisAnalyzer(ContextCompat.GetMainExecutor(_context), _barcodeAnalyzer);
+            _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
         }
     }
     
@@ -334,6 +336,7 @@ internal class CameraManager : IDisposable
             _zoomStateObserver?.Dispose();
             _barcodeAnalyzer?.Dispose();
             _barcodeScanner?.Dispose();
+            _cameraExecutor?.Dispose();
         }
     }
 }
