@@ -2,8 +2,10 @@ using AVFoundation;
 using CoreAnimation;
 using CoreFoundation;
 using CoreGraphics;
+using CoreImage;
 using CoreMedia;
 using Foundation;
+using Microsoft.Maui.Graphics.Platform;
 using UIKit;
 using Vision;
 
@@ -12,6 +14,7 @@ namespace BarcodeScanning;
 internal class CameraManager : IDisposable
 {
     internal BarcodeView BarcodeView { get => _barcodeView; }
+    internal bool CaptureNextFrame { get => _cameraView?.CaptureNextFrame ?? false; }
 
     private AVCaptureDevice _captureDevice;
     private AVCaptureInput _captureInput;
@@ -263,7 +266,7 @@ internal class CameraManager : IDisposable
 
             foreach (var barcode in _barcodeResults)
             {
-                if (!barcode.BoundingBox.Contains(previewCenter))
+                if (!barcode.PreviewBoundingBox.Contains(previewCenter))
                     _barcodeResults.Remove(barcode);
             }
         }
@@ -274,12 +277,23 @@ internal class CameraManager : IDisposable
 
             foreach (var barcode in _barcodeResults)
             {
-                if (!previewRect.Contains(barcode.BoundingBox))
+                if (!previewRect.Contains(barcode.PreviewBoundingBox))
                     _barcodeResults.Remove(barcode);
             }
         }
 
         _cameraView.DetectionFinished(_barcodeResults);
+    }
+
+    internal void CaptureImage(CMSampleBuffer sampleBuffer)
+    {
+        _cameraView.CaptureNextFrame = false;
+        using var imageBuffer = sampleBuffer.GetImageBuffer();
+        using var cIImage = new CIImage(imageBuffer);
+        using var cIContext = new CIContext();
+        using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
+        var image = new PlatformImage(new UIImage(cGImage));
+        _cameraView.TriggerOnImageCaptured(image);
     }
 
     private void FocusOnTap()
@@ -303,7 +317,7 @@ internal class CameraManager : IDisposable
             {
                 if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
                     _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
-                else
+                else if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.AutoFocus))
                     _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
                 
                 _captureDevice.SubjectAreaChangeMonitoringEnabled = false;

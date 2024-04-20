@@ -2,7 +2,7 @@
 using CoreGraphics;
 using CoreImage;
 using Foundation;
-using Microsoft.Maui.Platform;
+using Microsoft.Maui.Graphics.Platform;
 using System.Text;
 using UIKit;
 using Vision;
@@ -50,7 +50,8 @@ public static partial class Methods
                 DisplayValue = barcode.PayloadStringValue,
                 RawValue = barcode.PayloadStringValue,
                 RawBytes = GetRawBytes(barcode) ?? Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
-                BoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).ToRectangle() ?? barcode.BoundingBox.ToRectangle()
+                PreviewBoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).AsRectangleF() ?? RectF.Zero,
+                ImageBoundingBox = barcode.BoundingBox.AsRectangleF()
             });
         };
     }

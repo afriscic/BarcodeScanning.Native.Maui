@@ -1,4 +1,6 @@
 ﻿using System.Windows.Input;
+using Microsoft.Maui.Graphics.Platform;
+using IImage = Microsoft.Maui.Graphics.IImage;
 using Timer = System.Timers.Timer;
 
 namespace BarcodeScanning;
@@ -14,6 +16,17 @@ public partial class CameraView : View
     {
         get => (ICommand)GetValue(OnDetectionFinishedCommandProperty);
         set => SetValue(OnDetectionFinishedCommandProperty, value);
+    }
+
+    public static readonly BindableProperty OnImageCapturedCommandProperty = BindableProperty.Create(nameof(OnImageCapturedCommand)
+        , typeof(ICommand)
+        , typeof(CameraView)
+        , null
+        , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).OnImageCapturedCommand = (ICommand)newValue);
+    public ICommand OnImageCapturedCommand
+    {
+        get => (ICommand)GetValue(OnImageCapturedCommandProperty);
+        set => SetValue(OnImageCapturedCommandProperty, value);
     }
 
     public static readonly BindableProperty VibrationOnDetectedProperty = BindableProperty.Create(nameof(VibrationOnDetected)
@@ -189,6 +202,21 @@ public partial class CameraView : View
         set => SetValue(ViewfinderModeProperty, value);
     }
 
+    public static readonly BindableProperty CaptureNextFrameProperty = BindableProperty.Create(nameof(CaptureNextFrame)
+        , typeof(bool)
+        , typeof(CameraView)
+        , false
+        , BindingMode.TwoWay
+        , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).CaptureNextFrame = (bool)newValue);
+    /// <summary>
+    /// Captures the next frame from the camera feed.
+    /// </summary>
+    public bool CaptureNextFrame
+    {
+        get => (bool)GetValue(CaptureNextFrameProperty);
+        set => SetValue(CaptureNextFrameProperty, value);
+    }
+
     public static readonly BindableProperty RequestZoomFactorProperty = BindableProperty.Create(nameof(RequestZoomFactor)
         , typeof(float)
         , typeof(CameraView)
@@ -196,7 +224,7 @@ public partial class CameraView : View
         , defaultBindingMode: BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).RequestZoomFactor = (float)newValue);
     /// <summary>
-    /// Setting this value changes the zoom factor of the camera. Has to be between MinZoomFactor and MaxZoomFactor.
+    /// Setting this value changes the zoom factor of the camera. Value has to be between MinZoomFactor and MaxZoomFactor.
     /// Changing the camera resets this value.
     /// More info:
     /// iOS/macOS - https://developer.apple.com/documentation/avfoundation/avcapturedevice/zoom
@@ -266,6 +294,7 @@ public partial class CameraView : View
     }
 
     public event EventHandler<OnDetectionFinishedEventArg> OnDetectionFinished;
+    public event EventHandler<OnImageCapturedEventArg> OnImageCaptured;
 
     private readonly HashSet<BarcodeResult> _pooledResults;
     private readonly Timer _poolingTimer; 
@@ -298,7 +327,10 @@ public partial class CameraView : View
                 if (!_pooledResults.Add(result))
                 {
                     if (_pooledResults.TryGetValue(result, out var currentResult))
-                        currentResult.BoundingBox = result.BoundingBox;
+                    {
+                        currentResult.PreviewBoundingBox = result.PreviewBoundingBox;
+                        currentResult.ImageBoundingBox = result.ImageBoundingBox;
+                    }
                 }
             }
         }
@@ -344,6 +376,16 @@ public partial class CameraView : View
             OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = results });
             if (OnDetectionFinishedCommand?.CanExecute(results) ?? false)
                 OnDetectionFinishedCommand?.Execute(results);
+        });
+    }
+    
+    internal void TriggerOnImageCaptured(PlatformImage image)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnImageCaptured?.Invoke(this, new OnImageCapturedEventArg { Image = image });
+            if (OnImageCapturedCommand?.CanExecute(image) ?? false)
+                OnImageCapturedCommand?.Execute(image);
         });
     }
 }

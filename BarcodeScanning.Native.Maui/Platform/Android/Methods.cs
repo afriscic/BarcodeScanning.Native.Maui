@@ -10,6 +10,8 @@ using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
 using Image = Android.Media.Image;
+using Paint = Android.Graphics.Paint;
+using RectF = Microsoft.Maui.Graphics.RectF;
 using Size = Android.Util.Size;
 
 namespace BarcodeScanning;
@@ -33,13 +35,35 @@ public static partial class Methods
     {
         if (bitmap is null)
             return null;
-
+        
         var barcodeResults = new HashSet<BarcodeResult>();
-        using var image = InputImage.FromBitmap(bitmap, 0);
         using var scanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Barcode.FormatAllFormats)
             .Build());
+
+        using var image = InputImage.FromBitmap(bitmap, 0);
         ProcessBarcodeResult(await scanner.Process(image), barcodeResults);
+
+        using var invertedBitmap = Bitmap.CreateBitmap(bitmap.Height, bitmap.Width, Bitmap.Config.Argb8888);
+        using var canvas = new Canvas(invertedBitmap);
+        using var paint = new Paint();
+        using var matrixInvert = new ColorMatrix();
+
+        matrixInvert.Set(
+        [
+            -1.0f,  0.0f,  0.0f, 0.0f, 255.0f,
+			 0.0f, -1.0f,  0.0f, 0.0f, 255.0f,
+			 0.0f,  0.0f, -1.0f, 0.0f, 255.0f,
+			 0.0f,  0.0f,  0.0f, 1.0f, 0.0f
+        ]);
+
+        using var filter = new ColorMatrixColorFilter(matrixInvert);
+        paint.SetColorFilter(filter);
+        canvas.DrawBitmap(bitmap, 0, 0, paint);
+
+        using var invertedImage = InputImage.FromBitmap(invertedBitmap, 0);
+        ProcessBarcodeResult(await scanner.Process(invertedImage), barcodeResults);
+
         return barcodeResults;
     }
     
@@ -58,7 +82,10 @@ public static partial class Methods
                 continue;
 
             using var rectF = mapped.BoundingBox.AsRectF();
+            var imageRect = rectF.AsRectangleF();
+            
             transform?.MapRect(rectF);
+            var previewRect = transform is not null ? rectF.AsRectangleF() : RectF.Zero;
 
             outputResults.Add(new BarcodeResult()
             {
@@ -67,7 +94,8 @@ public static partial class Methods
                 DisplayValue = mapped.DisplayValue,
                 RawValue = mapped.RawValue,
                 RawBytes = mapped.GetRawBytes(),
-                BoundingBox = rectF.AsRectangleF()
+                PreviewBoundingBox = previewRect,
+                ImageBoundingBox = imageRect
             });
         }
     }

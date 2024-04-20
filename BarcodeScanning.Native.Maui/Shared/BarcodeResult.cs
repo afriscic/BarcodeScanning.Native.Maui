@@ -7,14 +7,15 @@ public class BarcodeResult : IEquatable<BarcodeResult>
     public string DisplayValue { get; set; }
     public string RawValue { get; set; }
     public byte[] RawBytes { get; set; }
-    public RectF BoundingBox { get; set; }
+    public RectF PreviewBoundingBox { get; set; }
+    public RectF ImageBoundingBox { get; set; }
 
     public bool Equals(BarcodeResult other)
     {
         if (other is null)
             return false;
 
-        if (this.RawValue == other.RawValue && this.BoundingBox.IntersectsWith(other.BoundingBox))
+        if (this.RawValue == other.RawValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
             return true;
         else
             return false;

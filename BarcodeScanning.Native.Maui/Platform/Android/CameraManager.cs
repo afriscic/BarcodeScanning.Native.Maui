@@ -7,6 +7,7 @@ using AndroidX.Camera.View;
 using AndroidX.Camera.View.Transform;
 using AndroidX.Lifecycle;
 using Java.Util.Concurrent;
+using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 using static Android.Views.ViewGroup;
@@ -21,6 +22,7 @@ namespace BarcodeScanning;
 internal class CameraManager : IDisposable
 {
     internal BarcodeView BarcodeView { get => _barcodeView; }
+    internal bool CaptureNextFrame { get => _cameraView?.CaptureNextFrame ?? false; }
 
     private BarcodeAnalyzer _barcodeAnalyzer;
     private IBarcodeScanner _barcodeScanner;
@@ -226,7 +228,7 @@ internal class CameraManager : IDisposable
             return;
 
         _barcodeResults.Clear();
-        using var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform);
+        using var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView?.OutputTransform).ConfigureAwait(false);
         using var source = new ImageProxyTransformFactory
         {
             UsingRotationDegrees = true
@@ -254,7 +256,7 @@ internal class CameraManager : IDisposable
 
             foreach (var barcode in _barcodeResults)
             {
-                if (!barcode.BoundingBox.Contains(previewCenter))
+                if (!barcode.PreviewBoundingBox.Contains(previewCenter))
                     _barcodeResults.Remove(barcode);
             }
         }
@@ -265,12 +267,19 @@ internal class CameraManager : IDisposable
 
             foreach (var barcode in _barcodeResults)
             {
-                if (!previewRect.Contains(barcode.BoundingBox))
+                if (!previewRect.Contains(barcode.PreviewBoundingBox))
                     _barcodeResults.Remove(barcode);
             }
         }
 
         _cameraView.DetectionFinished(_barcodeResults);
+    }
+
+    internal void CaptureImage(IImageProxy proxy)
+    {
+        _cameraView.CaptureNextFrame = false;
+        var image = new PlatformImage(proxy.ToBitmap());
+        _cameraView.TriggerOnImageCaptured(image);
     }
 
     private void UpdateOutput()
@@ -324,9 +333,9 @@ internal class CameraManager : IDisposable
 
             Stop();
 
+            _cameraController?.ZoomState.RemoveObserver(_zoomStateObserver);
             _barcodeView?.RemoveAllViews();
             _relativeLayout?.RemoveAllViews();
-            _cameraController?.ZoomState.RemoveObserver(_zoomStateObserver);
             
             _barcodeView?.Dispose();
             _relativeLayout?.Dispose();

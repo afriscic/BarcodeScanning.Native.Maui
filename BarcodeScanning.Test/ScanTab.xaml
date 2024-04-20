@@ -9,6 +9,7 @@
         <barcode:CameraView AbsoluteLayout.LayoutFlags="All"
                             AbsoluteLayout.LayoutBounds="0,0,1,1"
                             OnDetectionFinished="CameraView_OnDetectionFinished"
+                            OnImageCaptured="CameraView_OnImageCaptured"
                             CaptureQuality="High"
                             ForceInverted="False"
                             TapToFocusEnabled="True"

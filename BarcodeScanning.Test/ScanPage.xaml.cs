@@ -105,7 +105,7 @@ namespace BarcodeScanning.Test
 
                     foreach (var barcode in barcodeResults)
                     {
-                        canvas.DrawRectangle(barcode.BoundingBox);
+                        canvas.DrawRectangle(barcode.PreviewBoundingBox);
                     }
                 }
             }

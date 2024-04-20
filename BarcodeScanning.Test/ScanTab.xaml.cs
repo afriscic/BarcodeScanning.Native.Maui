@@ -1,3 +1,5 @@
+using Microsoft.Maui.Graphics.Platform;
+
 namespace BarcodeScanning.Test
 {
     public partial class ScanTab : ContentPage
@@ -37,6 +39,18 @@ namespace BarcodeScanning.Test
         private void CameraView_OnDetectionFinished(object sender, OnDetectionFinishedEventArg e)
         {
             _drawable.barcodeResults = e.BarcodeResults;
+
+            if (e.BarcodeResults.Length > 0)
+                Barcode.CaptureNextFrame = true;
+
+            Graphics.Invalidate();
+        }
+
+        private void CameraView_OnImageCaptured(object sender, OnImageCapturedEventArg e)
+        {
+            _drawable.image?.Dispose();
+            _drawable.image = e.Image;
+
             Graphics.Invalidate();
         }
 
@@ -82,8 +96,14 @@ namespace BarcodeScanning.Test
         private class BarcodeDrawable : IDrawable
         {
             public BarcodeResult[]? barcodeResults;
+            public PlatformImage? image;
             public void Draw(ICanvas canvas, RectF dirtyRect)
             {
+                if (image is not null)
+                {
+                    canvas.DrawImage(image, 10, 10, 200, 200);
+                }
+
                 if (barcodeResults is not null && barcodeResults.Length > 0)
                 {
                     canvas.StrokeSize = 15;
@@ -93,7 +113,7 @@ namespace BarcodeScanning.Test
 
                     foreach (var barcode in barcodeResults)
                     {
-                        canvas.DrawRectangle(barcode.BoundingBox);
+                        canvas.DrawRectangle(barcode.PreviewBoundingBox);
                     }
                 }
             }
