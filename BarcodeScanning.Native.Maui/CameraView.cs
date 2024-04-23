@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 using Microsoft.Maui.Graphics.Platform;
-using IImage = Microsoft.Maui.Graphics.IImage;
+
 using Timer = System.Timers.Timer;
 
 namespace BarcodeScanning;
