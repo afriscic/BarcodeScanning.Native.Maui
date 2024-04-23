@@ -69,7 +69,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     or bind `OnDetectionFinishedCommand` property to a Command in your ViewModel:
     ```xaml
     <scanner:CameraView ...
-                        OnDetectionFinishedCommand="DetectionFinishedCommand"
+                        OnDetectionFinishedCommand="{Binding DetectionFinishedCommand}"
                         .../>
     ```
     ```csharp
