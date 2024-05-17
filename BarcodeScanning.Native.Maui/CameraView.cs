@@ -33,6 +33,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , true
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).VibrationOnDetected = (bool)newValue);
     /// <summary>
     /// Disables or enables vibration on barcode detection.
@@ -47,6 +48,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).CameraEnabled = (bool)newValue);
     /// <summary>
     /// Disables or enables camera.
@@ -61,6 +63,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).PauseScanning = (bool)newValue);
     /// <summary>
     /// Pauses barcode scanning.
@@ -75,6 +78,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).ForceInverted = (bool)newValue);
     /// <summary>
     /// Forces scanning of inverted barcodes. Reduces performance significantly. Android only.
@@ -89,6 +93,7 @@ public partial class CameraView : View
         , typeof(int)
         , typeof(CameraView)
         , 0
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).PoolingInterval = (int)newValue);
     /// <summary>
     /// Enables pooling of detections for better detection of multiple barcodes at once. 
@@ -104,6 +109,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).TorchOn = (bool)newValue);
     /// <summary>
     /// Disables or enables torch.
@@ -118,6 +124,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).TapToFocusEnabled = (bool)newValue);
     /// <summary>
     /// Disables or enables tap-to-focus.
@@ -132,6 +139,7 @@ public partial class CameraView : View
         , typeof(CameraFacing)
         , typeof(CameraView)
         , CameraFacing.Back
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).CameraFacing = (CameraFacing)newValue);
     /// <summary>
     /// Select Back or Front camera.
@@ -147,6 +155,7 @@ public partial class CameraView : View
         , typeof(CaptureQuality)
         , typeof(CameraView)
         , CaptureQuality.Medium
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).CaptureQuality = (CaptureQuality)newValue);
     /// <summary>
     /// Set the capture quality for the image analysys.
@@ -163,6 +172,7 @@ public partial class CameraView : View
         , typeof(BarcodeFormats)
         , typeof(CameraView)
         , BarcodeFormats.All
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).BarcodeSymbologies = (BarcodeFormats)newValue);
     /// <summary>
     /// Set the enabled symbologies.
@@ -178,6 +188,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).AimMode = (bool)newValue);
     /// <summary>
     /// Disables or enables aim mode. When enabled only barcode that is in the center of the preview will be detected.
@@ -192,6 +203,7 @@ public partial class CameraView : View
         , typeof(bool)
         , typeof(CameraView)
         , false
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).ViewfinderMode = (bool)newValue);
     /// <summary>
     /// Disables or enables viewfinder mode. When enabled only barcode that is visible in the preview will be detected.
@@ -221,7 +233,7 @@ public partial class CameraView : View
         , typeof(float)
         , typeof(CameraView)
         , -1f
-        , defaultBindingMode: BindingMode.TwoWay
+        , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).RequestZoomFactor = (float)newValue);
     /// <summary>
     /// Setting this value changes the zoom factor of the camera. Value has to be between MinZoomFactor and MaxZoomFactor.
