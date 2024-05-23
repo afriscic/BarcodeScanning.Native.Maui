@@ -1,4 +1,6 @@
 ﻿using AndroidX.Camera.Core;
+using System.Diagnostics;
+
 using Size = Android.Util.Size;
 
 namespace BarcodeScanning;
@@ -28,8 +30,9 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             }
                 
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Debug.WriteLine(ex);
         }
         finally
         {
@@ -37,18 +40,10 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             {
                 proxy?.Close();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                MainThread.BeginInvokeOnMainThread(() => 
-                { 
-                    try 
-                    { 
-                        _cameraManager?.Start(); 
-                    } 
-                    catch (Exception) 
-                    { 
-                    } 
-                });
+                Debug.WriteLine(ex);
+                MainThread.BeginInvokeOnMainThread(() => _cameraManager?.Start());
             }
         }
     }

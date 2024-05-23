@@ -81,7 +81,7 @@ internal class CameraManager : IDisposable
 
         _relativeLayout = new RelativeLayout(_context)
         {
-            LayoutParameters = new LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
+            LayoutParameters = new RelativeLayout.LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
         _relativeLayout.AddView(_previewView);
 

@@ -1,5 +1,6 @@
 ﻿using AVFoundation;
 using CoreMedia;
+using System.Diagnostics;
 
 namespace BarcodeScanning;
 
@@ -24,8 +25,9 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                     _cameraManager.PerformBarcodeDetection(sampleBuffer);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Debug.WriteLine(ex);
         }
         finally
         {
@@ -33,18 +35,10 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             {
                 sampleBuffer?.Dispose();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    try 
-                    { 
-                        _cameraManager?.Start(); 
-                    } 
-                    catch (Exception) 
-                    { 
-                    } 
-                });
+                Debug.WriteLine(ex);
+                MainThread.BeginInvokeOnMainThread(() => _cameraManager?.Start());
             }
         }
     }
