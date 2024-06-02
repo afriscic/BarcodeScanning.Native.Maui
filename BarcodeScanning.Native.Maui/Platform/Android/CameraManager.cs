@@ -133,7 +133,12 @@ internal class CameraManager : IDisposable
         if (_cameraController is not null)
         {
             if ((int)_cameraController.TorchState.Value == TorchState.On)
+            {
                 _cameraController.EnableTorch(false);
+
+                if (_cameraView is not null)
+                    _cameraView.TorchOn = false;
+            }
             
             if (_cameraRunning)
                 _cameraController.Unbind();
