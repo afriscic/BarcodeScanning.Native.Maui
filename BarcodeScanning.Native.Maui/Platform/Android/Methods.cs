@@ -108,7 +108,7 @@ public static partial class Methods
             unsafe
             {
                 ulong* data = (ulong*)yBuffer.GetDirectBufferAddress();
-                Parallel.For(0, yBuffer.Capacity() / 8, parallelOptions, (i) => data[i] = ~data[i]);
+                Parallel.For(0, yBuffer.Capacity() / sizeof(ulong), parallelOptions, (i) => data[i] = ~data[i]);
             }
         }
         else

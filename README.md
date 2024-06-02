@@ -101,7 +101,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
         BarcodeView.Handler?.DisconnectHandler();
     }
     ```
-9. From wersion 1.5.0 set the `CaptureNextFrame` property to `true` to capture next frame from the camera feed as a `PlatformImage`. Listen to `OnImageCaptured` event or bind to `OnImageCapturedCommand` property to get the caputured image. **Image is captured from the original camera feed and can be different from the on-screen preview.** After the image is captured `CaptureNextFrame` property is automaticly set to `false` to prevent memory leaks. Example can be found in `ScanTab.xaml.cs`.
+9. From version 1.5.0 set the `CaptureNextFrame` property to `true` to capture next frame from the camera feed as a `PlatformImage`. Listen to `OnImageCaptured` event or bind to `OnImageCapturedCommand` property to get the caputured image. **Image is captured from the original camera feed and can be different from the on-screen preview.** After the image is captured `CaptureNextFrame` property is automaticly set to `false` to prevent memory leaks. Example can be found in `ScanTab.xaml.cs`.
 
 ## Supported barcode symbologies
 #### Android

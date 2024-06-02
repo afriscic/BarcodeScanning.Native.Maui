@@ -303,7 +303,7 @@ internal class CameraManager : IDisposable
 
     private void FocusOnTap()
     {
-        if (_cameraView?.TapToFocusEnabled ?? false && _captureDevice is not null  && _captureDevice.FocusPointOfInterestSupported)
+        if ((_cameraView?.TapToFocusEnabled ?? false) && _captureDevice is not null && _captureDevice.FocusPointOfInterestSupported)
         {
             CaptureDeviceLock(() =>
             {

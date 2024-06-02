@@ -41,19 +41,22 @@ public static partial class Methods
         if (inputResults is null || inputResults.Length == 0)
             return;
         
-        foreach (var barcode in inputResults)
+        lock (outputResults)
         {
-            outputResults.Add(new BarcodeResult()
+            foreach (var barcode in inputResults)
             {
-                BarcodeType = BarcodeTypes.Unknown,
-                BarcodeFormat = ConvertFromIOSFormats(barcode.Symbology),
-                DisplayValue = barcode.PayloadStringValue,
-                RawValue = barcode.PayloadStringValue,
-                RawBytes = GetRawBytes(barcode) ?? Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
-                PreviewBoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).AsRectangleF() ?? RectF.Zero,
-                ImageBoundingBox = barcode.BoundingBox.AsRectangleF()
-            });
-        };
+                outputResults.Add(new BarcodeResult()
+                {
+                    BarcodeType = BarcodeTypes.Unknown,
+                    BarcodeFormat = ConvertFromIOSFormats(barcode.Symbology),
+                    DisplayValue = barcode.PayloadStringValue,
+                    RawValue = barcode.PayloadStringValue,
+                    RawBytes = GetRawBytes(barcode) ?? Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
+                    PreviewBoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).AsRectangleF() ?? RectF.Zero,
+                    ImageBoundingBox = barcode.BoundingBox.AsRectangleF()
+                });
+            };
+        }
     }
 
     internal static VNBarcodeSymbology[] SelectedSymbologies(BarcodeFormats barcodeFormats)
@@ -104,6 +107,8 @@ public static partial class Methods
             symbologiesList.Add(VNBarcodeSymbology.MicroQR);
         if (barcodeFormats.HasFlag(BarcodeFormats.MicroPdf417))
             symbologiesList.Add(VNBarcodeSymbology.MicroPdf417);
+        if (barcodeFormats.HasFlag(BarcodeFormats.Pdf417))
+            symbologiesList.Add(VNBarcodeSymbology.Pdf417);
         if (barcodeFormats.HasFlag(BarcodeFormats.QRCode))
             symbologiesList.Add(VNBarcodeSymbology.QR);
         if (barcodeFormats.HasFlag(BarcodeFormats.Upca))
