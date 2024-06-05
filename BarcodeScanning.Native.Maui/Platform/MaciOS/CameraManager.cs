@@ -225,14 +225,9 @@ internal class CameraManager : IDisposable
         if (factor < 0)
             return;
 
-        var minValue = _cameraView?.MinZoomFactor ?? -1;
-        var maxValue = _cameraView?.MaxZoomFactor ?? -1;
+        factor = Math.Max(factor, _cameraView?.MinZoomFactor ?? -1);
+        factor = Math.Min(factor, _cameraView?.MaxZoomFactor ?? -1);
 
-        if (factor < minValue)
-            factor = minValue;
-        if (factor > maxValue)
-            factor = maxValue;
-        
         if (factor > 0 && _captureDevice is not null)
             CaptureDeviceLock(() => _captureDevice.VideoZoomFactor = factor);
 

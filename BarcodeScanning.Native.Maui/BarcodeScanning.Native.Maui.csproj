@@ -8,7 +8,7 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Version>1.5.3</Version>
+		<Version>1.6.0</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -57,7 +57,7 @@
 		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.0.2" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+	<ItemGroup Condition="$(TargetFramework.StartsWith('net8.0-windows'))">
 		<PackageReference Include="ZXingCpp" Version="0.2.1-alpha" />
 	</ItemGroup>
 
