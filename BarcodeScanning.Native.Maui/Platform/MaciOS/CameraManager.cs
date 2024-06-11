@@ -42,7 +42,7 @@ internal class CameraManager : IDisposable
         
         _captureSession = new AVCaptureSession();
         _sequenceRequestHandler = new VNSequenceRequestHandler();
-        _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue", new DispatchQueue.Attributes
+        _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue", new DispatchQueue.Attributes()
         {
             QualityOfService = DispatchQualityOfService.UserInitiated
         });
