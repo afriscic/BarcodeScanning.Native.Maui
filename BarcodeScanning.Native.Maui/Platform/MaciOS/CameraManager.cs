@@ -41,8 +41,11 @@ internal class CameraManager : IDisposable
         _cameraView = cameraView;
         
         _captureSession = new AVCaptureSession();
-        _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue");
         _sequenceRequestHandler = new VNSequenceRequestHandler();
+        _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue", new DispatchQueue.Attributes
+        {
+            QualityOfService = DispatchQualityOfService.UserInitiated
+        });
         _videoDataOutput = new AVCaptureVideoDataOutput()
         {
             AlwaysDiscardsLateVideoFrames = true
