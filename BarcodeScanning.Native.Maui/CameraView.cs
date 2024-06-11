@@ -237,7 +237,6 @@ public partial class CameraView : View
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).RequestZoomFactor = (float)newValue);
     /// <summary>
     /// Setting this value changes the zoom factor of the camera. Value has to be between MinZoomFactor and MaxZoomFactor.
-    /// Changing the camera resets this value.
     /// More info:
     /// iOS/macOS - https://developer.apple.com/documentation/avfoundation/avcapturedevice/zoom
     /// Android - https://developer.android.com/reference/kotlin/androidx/camera/view/CameraController#setZoomRatio(float)
@@ -350,11 +349,6 @@ public partial class CameraView : View
         {
             TriggerOnDetectionFinished(barCodeResults);
         }
-    }
-
-    internal void ResetRequestZoomFactor()
-    {
-        RequestZoomFactor = -1f;
     }
 
     private void PoolingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
