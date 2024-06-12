@@ -6,6 +6,7 @@ using CoreImage;
 using CoreMedia;
 using Foundation;
 using Microsoft.Maui.Graphics.Platform;
+using System.Diagnostics;
 using UIKit;
 using Vision;
 
@@ -26,14 +27,13 @@ internal class CameraManager : IDisposable
     private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
     private readonly CAShapeLayer _shapeLayer;
+    private readonly DispatchQueue _dispatchQueue;
     private readonly NSObject _subjectAreaChangedNotificaion;
     private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
     private readonly UITapGestureRecognizer _uITapGestureRecognizer;
 
     private readonly HashSet<BarcodeResult> _barcodeResults = [];
-    private readonly object _syncLock = new();
-    private readonly object _configLock = new();
     private const int aimRadius = 8;
 
     internal CameraManager(CameraView cameraView)
@@ -42,6 +42,10 @@ internal class CameraManager : IDisposable
         
         _captureSession = new AVCaptureSession();
         _sequenceRequestHandler = new VNSequenceRequestHandler();
+        _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue", new DispatchQueue.Attributes()
+        {
+            QualityOfService = DispatchQualityOfService.UserInitiated
+        });
         _videoDataOutput = new AVCaptureVideoDataOutput()
         {
             AlwaysDiscardsLateVideoFrames = true
@@ -70,8 +74,8 @@ internal class CameraManager : IDisposable
             StrokeColor = UIColor.Clear.CGColor,
             LineWidth = 0
         };
+        
         _barcodeView = new BarcodeView(_previewLayer, _shapeLayer);
-
         _barcodeView.Layer.AddSublayer(_previewLayer);
         _barcodeView.AddGestureRecognizer(_uITapGestureRecognizer);
     }
@@ -81,7 +85,7 @@ internal class CameraManager : IDisposable
         if (_captureSession is not null)
         {
             if (_captureSession.Running)
-                _captureSession.StopRunning();
+                _dispatchQueue.DispatchAsync(_captureSession.StopRunning);
             
             if (_captureSession.Inputs.Length == 0)
                 UpdateCamera();
@@ -89,21 +93,23 @@ internal class CameraManager : IDisposable
                 UpdateResolution();
             if (!_captureSession.Outputs.Contains(_videoDataOutput) && _captureSession.CanAddOutput(_videoDataOutput))
             {
-                _captureSession.BeginConfiguration();
-                _captureSession.AddOutput(_videoDataOutput);
-                _captureSession.CommitConfiguration();
+                _dispatchQueue.DispatchAsync(() =>
+                {
+                    _captureSession.BeginConfiguration();
+                    _captureSession.AddOutput(_videoDataOutput);
+                    _captureSession.CommitConfiguration();
+                });
             }
-            
-            UpdateOutput();
-            UpdateAnalyzer();
-            UpdateTorch();
 
-            lock (_syncLock)
+            _dispatchQueue.DispatchAsync(() =>
             {
                 _captureSession.StartRunning();
-            }
 
-            UpdateZoomFactor();
+                UpdateOutput();
+                UpdateAnalyzer();
+                UpdateTorch();
+                UpdateZoomFactor();
+            });
         }
     }
 
@@ -120,7 +126,7 @@ internal class CameraManager : IDisposable
             }
 
             if (_captureSession.Running)
-                _captureSession.StopRunning();
+                _dispatchQueue.DispatchAsync(_captureSession.StopRunning);
         }
     }
 
@@ -128,18 +134,12 @@ internal class CameraManager : IDisposable
     {
         if (_captureSession is not null)
         {
-            var quality = _cameraView?.CaptureQuality ?? CaptureQuality.Medium;
-            while (!_captureSession.CanSetSessionPreset(GetCaptureSessionResolution(quality)) && quality != CaptureQuality.Low)
-            {
-                quality -= 1;
-            }
-
-            lock (_syncLock)
+            _dispatchQueue.DispatchAsync(() => 
             {
                 _captureSession.BeginConfiguration();
-                _captureSession.SessionPreset = GetCaptureSessionResolution(quality);
+                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
                 _captureSession.CommitConfiguration();
-            }
+            });
         }
     }
 
@@ -153,11 +153,9 @@ internal class CameraManager : IDisposable
     {
         if (_captureSession is not null)
         {
-            lock (_syncLock)
+            _dispatchQueue.DispatchAsync(() =>
             {
                 _captureSession.BeginConfiguration();
-
-                _captureSession.SessionPreset = AVCaptureSession.Preset1280x720;
 
                 if (_captureInput is not null)
                 {
@@ -189,14 +187,12 @@ internal class CameraManager : IDisposable
                         _captureSession.AddInput(_captureInput);
                 }
 
+                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
                 _captureSession.CommitConfiguration();
-            }
 
-            ReportZoomFactors();
-            ResetFocus();
-            UpdateResolution();
-
-            _cameraView?.ResetRequestZoomFactor();
+                UpdateZoomFactor();
+                ResetFocus();
+            });
         }
     }
     internal void UpdateTorch()
@@ -220,18 +216,26 @@ internal class CameraManager : IDisposable
 
     internal void UpdateZoomFactor()
     {
-        var factor = _cameraView?.RequestZoomFactor ?? -1;
+        if (_cameraView is not null && _captureDevice is not null)
+        {
+            _cameraView.MinZoomFactor = (float)_captureDevice.MinAvailableVideoZoomFactor;
+            _cameraView.MaxZoomFactor = (float)_captureDevice.MaxAvailableVideoZoomFactor;
+            _cameraView.DeviceSwitchZoomFactor = _captureDevice.VirtualDeviceSwitchOverVideoZoomFactors?.Select(s => (float)s).ToArray() ?? [];
 
-        if (factor < 0)
-            return;
+            var factor = _cameraView.RequestZoomFactor;
 
-        factor = Math.Max(factor, _cameraView?.MinZoomFactor ?? -1);
-        factor = Math.Min(factor, _cameraView?.MaxZoomFactor ?? -1);
-
-        if (factor > 0 && _captureDevice is not null)
-            CaptureDeviceLock(() => _captureDevice.VideoZoomFactor = factor);
-
-        ReportZoomFactors();
+            if (factor > 0)
+            {
+                factor = Math.Max(factor, _cameraView.MinZoomFactor);
+                factor = Math.Min(factor, _cameraView.MaxZoomFactor);
+                
+                CaptureDeviceLock(() => 
+                {
+                    _captureDevice.VideoZoomFactor = factor;
+                    _cameraView.CurrentZoomFactor = factor;
+                });
+            }
+        }
     }
 
     internal void HandleCameraEnabled()
@@ -336,51 +340,26 @@ internal class CameraManager : IDisposable
         }
     }
 
-    private void CaptureDeviceLock(Action handler)
+    private void CaptureDeviceLock(Action action)
     {
-        MainThread.BeginInvokeOnMainThread(() => 
+        DispatchQueue.MainQueue.DispatchAsync(() =>
         {
-            lock (_configLock)
+            if (_captureDevice?.LockForConfiguration(out _) ?? false)
             {
-                if (_captureDevice?.LockForConfiguration(out _) ?? false)
+                try
                 {
-                    try
-                    {
-                        handler();
-                    }
-                    catch (Exception)
-                    {      
-                    }
-                    finally
-                    {
-                        _captureDevice.UnlockForConfiguration();
-                    }
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);      
+                }
+                finally
+                {
+                    _captureDevice.UnlockForConfiguration();
                 }
             }
         });
-    }
-
-    private void ReportZoomFactors()
-    {
-        if (_cameraView is not null && _captureDevice is not null)
-        {
-            _cameraView.CurrentZoomFactor = (float)_captureDevice.VideoZoomFactor;
-            _cameraView.MinZoomFactor = (float)_captureDevice.MinAvailableVideoZoomFactor;
-            _cameraView.MaxZoomFactor = (float)_captureDevice.MaxAvailableVideoZoomFactor;
-            _cameraView.DeviceSwitchZoomFactor = _captureDevice.VirtualDeviceSwitchOverVideoZoomFactors.Select(s => (float)s).ToArray();
-        }
-    }
-
-    private static NSString GetCaptureSessionResolution(CaptureQuality quality)
-    {
-        return quality switch
-        {
-            CaptureQuality.Low => AVCaptureSession.Preset640x480,
-            CaptureQuality.Medium => AVCaptureSession.Preset1280x720,
-            CaptureQuality.High => AVCaptureSession.Preset1920x1080,
-            CaptureQuality.Highest => AVCaptureSession.Preset3840x2160,
-            _ => AVCaptureSession.Preset1280x720
-        };
     }
 
     public void Dispose()
@@ -419,6 +398,7 @@ internal class CameraManager : IDisposable
             _detectBarcodesRequest?.Dispose();
             _uITapGestureRecognizer?.Dispose();
             _subjectAreaChangedNotificaion?.Dispose();
+            _dispatchQueue?.Dispose();
         }
     }
 }
