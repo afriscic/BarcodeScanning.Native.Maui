@@ -78,10 +78,8 @@ public static partial class Methods
 
         var symbologiesList = new List<VNBarcodeSymbology>();
 
-        if (barcodeFormats.HasFlag(BarcodeFormats.Aztec))
-            symbologiesList.Add(VNBarcodeSymbology.Aztec);
-        if (barcodeFormats.HasFlag(BarcodeFormats.CodaBar))
-            symbologiesList.Add(VNBarcodeSymbology.Codabar);
+        if (barcodeFormats.HasFlag(BarcodeFormats.Code128))
+            symbologiesList.Add(VNBarcodeSymbology.Code128);
         if (barcodeFormats.HasFlag(BarcodeFormats.Code39))
         {
             symbologiesList.Add(VNBarcodeSymbology.Code39);
@@ -94,39 +92,41 @@ public static partial class Methods
             symbologiesList.Add(VNBarcodeSymbology.Code93);
             symbologiesList.Add(VNBarcodeSymbology.Code93i);
         }
-        if (barcodeFormats.HasFlag(BarcodeFormats.Code128))
-            symbologiesList.Add(VNBarcodeSymbology.Code128);
+        if (barcodeFormats.HasFlag(BarcodeFormats.CodaBar))
+            symbologiesList.Add(VNBarcodeSymbology.Codabar);
         if (barcodeFormats.HasFlag(BarcodeFormats.DataMatrix))
             symbologiesList.Add(VNBarcodeSymbology.DataMatrix);
-        if (barcodeFormats.HasFlag(BarcodeFormats.Ean8))
-            symbologiesList.Add(VNBarcodeSymbology.Ean8);
         if (barcodeFormats.HasFlag(BarcodeFormats.Ean13))
             symbologiesList.Add(VNBarcodeSymbology.Ean13);
-        if (barcodeFormats.HasFlag(BarcodeFormats.GS1DataBar))
-        {
-            symbologiesList.Add(VNBarcodeSymbology.GS1DataBar);
-            symbologiesList.Add(VNBarcodeSymbology.GS1DataBarLimited);
-            symbologiesList.Add(VNBarcodeSymbology.GS1DataBarExpanded);
-        }
-        if (barcodeFormats.HasFlag(BarcodeFormats.I2OF5))
-        {
-            symbologiesList.Add(VNBarcodeSymbology.I2OF5);
-            symbologiesList.Add(VNBarcodeSymbology.I2OF5Checksum);
-        }
+        if (barcodeFormats.HasFlag(BarcodeFormats.Ean8))
+            symbologiesList.Add(VNBarcodeSymbology.Ean8);
         if (barcodeFormats.HasFlag(BarcodeFormats.Itf))
             symbologiesList.Add(VNBarcodeSymbology.Itf14);
-        if (barcodeFormats.HasFlag(BarcodeFormats.MicroQR))
-            symbologiesList.Add(VNBarcodeSymbology.MicroQR);
-        if (barcodeFormats.HasFlag(BarcodeFormats.MicroPdf417))
-            symbologiesList.Add(VNBarcodeSymbology.MicroPdf417);
-        if (barcodeFormats.HasFlag(BarcodeFormats.Pdf417))
-            symbologiesList.Add(VNBarcodeSymbology.Pdf417);
         if (barcodeFormats.HasFlag(BarcodeFormats.QRCode))
             symbologiesList.Add(VNBarcodeSymbology.QR);
         if (barcodeFormats.HasFlag(BarcodeFormats.Upca))
             symbologiesList.Add(VNBarcodeSymbology.Ean13);
         if (barcodeFormats.HasFlag(BarcodeFormats.Upce))
             symbologiesList.Add(VNBarcodeSymbology.Upce);
+        if (barcodeFormats.HasFlag(BarcodeFormats.Pdf417))
+            symbologiesList.Add(VNBarcodeSymbology.Pdf417);
+        if (barcodeFormats.HasFlag(BarcodeFormats.Aztec))
+            symbologiesList.Add(VNBarcodeSymbology.Aztec);
+        if (barcodeFormats.HasFlag(BarcodeFormats.MicroQR))
+            symbologiesList.Add(VNBarcodeSymbology.MicroQR);
+        if (barcodeFormats.HasFlag(BarcodeFormats.MicroPdf417))
+            symbologiesList.Add(VNBarcodeSymbology.MicroPdf417);
+        if (barcodeFormats.HasFlag(BarcodeFormats.I2OF5))
+        {
+            symbologiesList.Add(VNBarcodeSymbology.I2OF5);
+            symbologiesList.Add(VNBarcodeSymbology.I2OF5Checksum);
+        }
+        if (barcodeFormats.HasFlag(BarcodeFormats.GS1DataBar))
+        {
+            symbologiesList.Add(VNBarcodeSymbology.GS1DataBar);
+            symbologiesList.Add(VNBarcodeSymbology.GS1DataBarLimited);
+            symbologiesList.Add(VNBarcodeSymbology.GS1DataBarExpanded);
+        }
 
         return [.. symbologiesList];
     }
@@ -136,7 +136,6 @@ public static partial class Methods
         return symbology switch
         {
             VNBarcodeSymbology.Aztec => BarcodeFormats.Aztec,
-            VNBarcodeSymbology.Codabar => BarcodeFormats.CodaBar,
             VNBarcodeSymbology.Code39 => BarcodeFormats.Code39,
             VNBarcodeSymbology.Code39Checksum => BarcodeFormats.Code39,
             VNBarcodeSymbology.Code39FullAscii => BarcodeFormats.Code39,
@@ -147,17 +146,18 @@ public static partial class Methods
             VNBarcodeSymbology.DataMatrix => BarcodeFormats.DataMatrix,
             VNBarcodeSymbology.Ean8 => BarcodeFormats.Ean8,
             VNBarcodeSymbology.Ean13 => BarcodeFormats.Ean13,
-            VNBarcodeSymbology.GS1DataBar => BarcodeFormats.GS1DataBar,
-            VNBarcodeSymbology.GS1DataBarExpanded => BarcodeFormats.GS1DataBar,
-            VNBarcodeSymbology.GS1DataBarLimited => BarcodeFormats.GS1DataBar,
             VNBarcodeSymbology.I2OF5 => BarcodeFormats.I2OF5,
             VNBarcodeSymbology.I2OF5Checksum => BarcodeFormats.I2OF5,
             VNBarcodeSymbology.Itf14 => BarcodeFormats.Itf,
-            VNBarcodeSymbology.MicroPdf417 => BarcodeFormats.MicroPdf417,
-            VNBarcodeSymbology.MicroQR => BarcodeFormats.MicroQR,
             VNBarcodeSymbology.Pdf417 => BarcodeFormats.Pdf417,
             VNBarcodeSymbology.QR => BarcodeFormats.QRCode,
             VNBarcodeSymbology.Upce => BarcodeFormats.Upce,
+            VNBarcodeSymbology.Codabar => BarcodeFormats.CodaBar,
+            VNBarcodeSymbology.GS1DataBar => BarcodeFormats.GS1DataBar,
+            VNBarcodeSymbology.GS1DataBarExpanded => BarcodeFormats.GS1DataBar,
+            VNBarcodeSymbology.GS1DataBarLimited => BarcodeFormats.GS1DataBar,
+            VNBarcodeSymbology.MicroPdf417 => BarcodeFormats.MicroPdf417,
+            VNBarcodeSymbology.MicroQR => BarcodeFormats.MicroQR,
             _ => BarcodeFormats.None
         };
     }

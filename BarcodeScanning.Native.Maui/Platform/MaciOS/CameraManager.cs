@@ -118,7 +118,12 @@ internal class CameraManager : IDisposable
         if (_captureSession is not null)
         {
             if (_captureDevice is not null && _captureDevice.TorchActive)
+            {
                 CaptureDeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
+
+                if (_cameraView is not null)
+                    _cameraView.TorchOn = false;
+            }
 
             if (_captureSession.Running)
                 _dispatchQueue.DispatchAsync(_captureSession.StopRunning);

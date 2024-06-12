@@ -21,5 +21,7 @@ public enum BarcodeFormats
     MicroPdf417 = 16384,
     I2OF5 = 32768,
     GS1DataBar = 65536,
-    All = 131072
+    MaxiCode = 131072,
+    DXFilmEdge = 262144,
+    All = 524288
 }
