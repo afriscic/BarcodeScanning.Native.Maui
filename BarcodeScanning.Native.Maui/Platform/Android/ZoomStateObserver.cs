@@ -5,12 +5,10 @@ namespace BarcodeScanning;
 
 internal class ZoomStateObserver : Java.Lang.Object, IObserver
 {
-    private readonly CameraManager _cameraManager;
     private readonly CameraView _cameraView;
 
-    internal ZoomStateObserver(CameraManager cameraManager, CameraView cameraView)
+    internal ZoomStateObserver(CameraView cameraView)
     {
-        _cameraManager = cameraManager;
         _cameraView = cameraView;
     }
 
@@ -21,8 +19,6 @@ internal class ZoomStateObserver : Java.Lang.Object, IObserver
             _cameraView.CurrentZoomFactor = state.ZoomRatio;
             _cameraView.MinZoomFactor = state.MinZoomRatio;
             _cameraView.MaxZoomFactor = state.MaxZoomRatio;
-
-            _cameraManager?.UpdateZoomFactor();
         }
     }
 }

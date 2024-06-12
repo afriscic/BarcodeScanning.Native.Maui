@@ -13,7 +13,6 @@ using Xamarin.Google.MLKit.Vision.Common;
 using static Android.Views.ViewGroup;
 
 using Color = Android.Graphics.Color;
-using MLKitBarcodeScanning = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning;
 using Paint = Android.Graphics.Paint;
 using Point = Microsoft.Maui.Graphics.Point;
 using RectF = Microsoft.Maui.Graphics.RectF;
@@ -48,7 +47,7 @@ internal class CameraManager : IDisposable
         _cameraView = cameraView;
 
         _cameraExecutor = Executors.NewSingleThreadExecutor();
-        _zoomStateObserver = new ZoomStateObserver(this, _cameraView);
+        _zoomStateObserver = new ZoomStateObserver(_cameraView);
         _cameraController = new LifecycleCameraController(_context)
         {
             TapToFocusEnabled = _cameraView?.TapToFocusEnabled ?? false,
@@ -124,6 +123,8 @@ internal class CameraManager : IDisposable
             
             _cameraController.BindToLifecycle(lifecycleOwner);
             _cameraRunning = true;
+
+            UpdateZoomFactor();
         }
     }
 
@@ -151,7 +152,7 @@ internal class CameraManager : IDisposable
     internal void UpdateAnalyzer()
     {
         _barcodeScanner?.Dispose();
-        _barcodeScanner = MLKitBarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
+        _barcodeScanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
             .Build());
     }
@@ -164,6 +165,8 @@ internal class CameraManager : IDisposable
                 _cameraController.CameraSelector = CameraSelector.DefaultFrontCamera;
             else
                 _cameraController.CameraSelector = CameraSelector.DefaultBackCamera;
+
+            _cameraView?.ResetRequestZoomFactor();
         }
     }
 
@@ -185,16 +188,16 @@ internal class CameraManager : IDisposable
 
     internal void UpdateZoomFactor()
     {
-        if (_cameraView is not null &&(_cameraController?.ZoomState?.IsInitialized ?? false))
-        {
-            var factor = _cameraView.RequestZoomFactor;
-            if (factor > 0)
-            {
-                factor = Math.Max(factor, _cameraView.MinZoomFactor);
-                factor = Math.Min(factor, _cameraView.MaxZoomFactor);
-                _cameraController.SetZoomRatio(factor);
-            }
-        }            
+        var factor = _cameraView?.RequestZoomFactor ?? -1;
+
+        if (factor < 0)
+            return;
+
+        factor = Math.Max(factor, _cameraView?.MinZoomFactor ?? -1);
+        factor = Math.Min(factor, _cameraView?.MaxZoomFactor ?? -1);
+
+        if (factor > 0)
+            _cameraController?.SetZoomRatio(factor);
     }
 
     internal void HandleCameraEnabled()

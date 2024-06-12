@@ -59,18 +59,6 @@ public static partial class Methods
         }
     }
 
-    internal static NSString GetBestSupportedPreset(AVCaptureSession captureSession, CaptureQuality quality)
-    {
-        ArgumentNullException.ThrowIfNull(captureSession);
-                
-        while (!captureSession.CanSetSessionPreset(SessionPresetTranslator(quality)) && quality != CaptureQuality.Low)
-        {
-            quality -= 1;
-        }
-
-        return SessionPresetTranslator(quality);
-    }
-
     internal static VNBarcodeSymbology[] SelectedSymbologies(BarcodeFormats barcodeFormats)
     {
         if (barcodeFormats.HasFlag(BarcodeFormats.All))
@@ -176,18 +164,6 @@ public static partial class Methods
             VNBarcodeSymbology.Pdf417 => ((CIPdf417CodeDescriptor)barcodeObservation.BarcodeDescriptor)?.ErrorCorrectedPayload?.ToArray(),
             VNBarcodeSymbology.DataMatrix => ((CIDataMatrixCodeDescriptor)barcodeObservation.BarcodeDescriptor)?.ErrorCorrectedPayload?.ToArray(),
             _ => null
-        };
-    }
-
-    private static NSString SessionPresetTranslator(CaptureQuality quality)
-    {
-        return quality switch
-        {
-            CaptureQuality.Low => AVCaptureSession.Preset640x480,
-            CaptureQuality.Medium => AVCaptureSession.Preset1280x720,
-            CaptureQuality.High => AVCaptureSession.Preset1920x1080,
-            CaptureQuality.Highest => AVCaptureSession.Preset3840x2160,
-            _ => AVCaptureSession.Preset1280x720
         };
     }
 }
