@@ -134,6 +134,8 @@ internal partial class CameraManager : IDisposable
                 UpdateResolution();
 
                 _mediaPlayerElement.Source = MediaSource.CreateFromMediaFrameSource(_mediaCapture?.FrameSources[_selectedCamera?.Id]);
+                var mediaPlayer = _mediaPlayerElement.MediaPlayer;
+
             }
 
             if (_mediaFrameReader is null)
@@ -149,26 +151,21 @@ internal partial class CameraManager : IDisposable
 
     private void _mediaFrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
+
         if (sender is not null)
         {
             _barcodeReader.TryInvert = _cameraView?.ForceInverted ?? false;
 
             using var frame = sender.TryAcquireLatestFrame();
             using var videoBitmap = frame?.VideoMediaFrame?.SoftwareBitmap;
-            using var buffer = videoBitmap.LockBuffer(BitmapBufferAccessMode.Read);
-            using var reference = buffer.CreateReference();
 
-            unsafe
+            if (videoBitmap is not null && _cameraView is not null)
             {
-                ((Methods.IMemoryBufferByteAccess)reference).GetBuffer(out byte* dataInBytes, out uint capacity);
-                var iv = new ImageView(new IntPtr(dataInBytes), videoBitmap.PixelWidth, videoBitmap.PixelHeight, Methods.ConvertImageFormats(videoBitmap.BitmapPixelFormat));
-                var barcodes = _barcodeReader.From(iv);
+                if (_cameraView.CaptureNextFrame)
+                    CaptureImage(videoBitmap);
+                else
+                    PerformBarcodeDetection(videoBitmap);
             }
-
-            var device = CanvasDevice.GetSharedDevice();
-
-            var image = new PlatformImage(device, CanvasBitmap.CreateFromSoftwareBitmap(device, videoBitmap));
-
         }
     }
 
@@ -303,6 +300,33 @@ internal partial class CameraManager : IDisposable
             _cameraView.CurrentZoomFactor = _mediaCapture.VideoDeviceController.ZoomControl.Value;
             _cameraView.MinZoomFactor = _mediaCapture.VideoDeviceController.ZoomControl.Min;
             _cameraView.MaxZoomFactor = _mediaCapture.VideoDeviceController.ZoomControl.Max;
+        }
+    }
+
+    private void CaptureImage(SoftwareBitmap bitmap)
+    {
+        _cameraView.CaptureNextFrame = false;
+        var device = CanvasDevice.GetSharedDevice();
+        var image = new PlatformImage(device, CanvasBitmap.CreateFromSoftwareBitmap(device, bitmap));
+        _cameraView.TriggerOnImageCaptured(image);
+    }
+
+    private void PerformBarcodeDetection(SoftwareBitmap bitmap)
+    {
+        using var buffer = bitmap.LockBuffer(BitmapBufferAccessMode.Read);
+        using var reference = buffer.CreateReference();
+
+        List<Barcode> barcodes = [];
+        unsafe
+        {
+            ((Methods.IMemoryBufferByteAccess)reference).GetBuffer(out byte* dataInBytes, out uint capacity);
+            var iv = new ImageView(new IntPtr(dataInBytes), bitmap.PixelWidth, bitmap.PixelHeight, Methods.ConvertImageFormats(bitmap.BitmapPixelFormat));
+            barcodes = _barcodeReader.From(iv);
+        }
+
+        foreach (var barcode in barcodes)
+        {
+            barcode.Position.
         }
     }
 

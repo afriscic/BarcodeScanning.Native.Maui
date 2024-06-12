@@ -28,10 +28,7 @@ public static partial class Methods
         if (barcodeFormats.HasFlag(BarcodeFormats.Itf))
             formats |= ZXingCpp.BarcodeFormats.ITF;
         if (barcodeFormats.HasFlag(BarcodeFormats.QRCode))
-        {
             formats |= ZXingCpp.BarcodeFormats.QRCode;
-            formats |= ZXingCpp.BarcodeFormats.RMQRCode;
-        }
         if (barcodeFormats.HasFlag(BarcodeFormats.Upca))
             formats |= ZXingCpp.BarcodeFormats.UPCA;
         if (barcodeFormats.HasFlag(BarcodeFormats.Upce))
@@ -41,12 +38,19 @@ public static partial class Methods
         if (barcodeFormats.HasFlag(BarcodeFormats.Aztec))
             formats |= ZXingCpp.BarcodeFormats.Aztec;
         if (barcodeFormats.HasFlag(BarcodeFormats.MicroQR))
+        {
             formats |= ZXingCpp.BarcodeFormats.MicroQRCode;
+            formats |= ZXingCpp.BarcodeFormats.RMQRCode;
+        }
         if (barcodeFormats.HasFlag(BarcodeFormats.GS1DataBar))
         {
             formats |= ZXingCpp.BarcodeFormats.DataBar;
             formats |= ZXingCpp.BarcodeFormats.DataBarExpanded;
         }
+        if (barcodeFormats.HasFlag(BarcodeFormats.MaxiCode))
+            formats |= ZXingCpp.BarcodeFormats.MaxiCode;
+        if (barcodeFormats.HasFlag(BarcodeFormats.DXFilmEdge))
+            formats |= ZXingCpp.BarcodeFormats.DXFilmEdge;
         if (barcodeFormats.HasFlag(BarcodeFormats.All))
             formats = ZXingCpp.BarcodeFormats.Any;
         return formats;
@@ -67,16 +71,16 @@ public static partial class Methods
             ZXingCpp.BarcodeFormats.EAN8 => BarcodeFormats.Ean8,
             ZXingCpp.BarcodeFormats.EAN13 => BarcodeFormats.Ean13,
             ZXingCpp.BarcodeFormats.ITF => BarcodeFormats.Itf,
-            ZXingCpp.BarcodeFormats.MaxiCode => BarcodeFormats.,
+            ZXingCpp.BarcodeFormats.MaxiCode => BarcodeFormats.MaxiCode,
             ZXingCpp.BarcodeFormats.PDF417 => BarcodeFormats.Pdf417,
             ZXingCpp.BarcodeFormats.QRCode => BarcodeFormats.QRCode,
             ZXingCpp.BarcodeFormats.UPCA => BarcodeFormats.Upca,
             ZXingCpp.BarcodeFormats.UPCE => BarcodeFormats.Upce,
-            ZXingCpp.BarcodeFormats.PDF417 => BarcodeFormats.Pdf417,
-            ZXingCpp.BarcodeFormats.PDF417 => BarcodeFormats.Pdf417,
-            ZXingCpp.BarcodeFormats.PDF417 => BarcodeFormats.Pdf417,
-
-        }
+            ZXingCpp.BarcodeFormats.MicroQRCode => BarcodeFormats.MicroQR,
+            ZXingCpp.BarcodeFormats.RMQRCode => BarcodeFormats.MicroQR,
+            ZXingCpp.BarcodeFormats.DXFilmEdge => BarcodeFormats.DXFilmEdge,
+            _ => BarcodeFormats.None
+        };
     }
 
     internal static ZXingCpp.ImageFormat ConvertImageFormats(BitmapPixelFormat pixelFormat)
