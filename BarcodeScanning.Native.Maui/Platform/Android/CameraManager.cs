@@ -192,7 +192,9 @@ internal class CameraManager : IDisposable
             {
                 factor = Math.Max(factor, _cameraView.MinZoomFactor);
                 factor = Math.Min(factor, _cameraView.MaxZoomFactor);
-                _cameraController.SetZoomRatio(factor);
+
+                if (factor != _cameraView.CurrentZoomFactor)
+                    _cameraController.SetZoomRatio(factor);
             }
         }            
     }
