@@ -102,4 +102,3 @@ public static partial class Methods
         void GetBuffer(out byte* buffer, out uint capacity);
     }
 }
-

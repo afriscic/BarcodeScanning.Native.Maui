@@ -10,6 +10,7 @@ using Java.Util.Concurrent;
 using Microsoft.Maui.Graphics.Platform;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
+
 using static Android.Views.ViewGroup;
 
 using Color = Android.Graphics.Color;
@@ -186,7 +187,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateZoomFactor()
     {
-        if (_cameraView is not null &&(_cameraController?.ZoomState?.IsInitialized ?? false))
+        if (_cameraView is not null && (_cameraController?.ZoomState?.IsInitialized ?? false))
         {
             var factor = _cameraView.RequestZoomFactor;
             if (factor > 0)
