@@ -356,7 +356,7 @@ internal class CameraManager : IDisposable
                 }
                 finally
                 {
-                    _captureDevice.UnlockForConfiguration();
+                    _captureDevice?.UnlockForConfiguration();
                 }
             }
         });
