@@ -5,6 +5,8 @@ using AndroidX.Camera.View.Transform;
 using Java.Net;
 using Java.Util;
 using Microsoft.Maui.Graphics.Platform;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
@@ -42,7 +44,8 @@ public static partial class Methods
             .Build());
 
         using var image = InputImage.FromBitmap(bitmap, 0);
-        ProcessBarcodeResult(await scanner.Process(image), barcodeResults);
+        using var results = await scanner.Process(image).AsAsync<Java.Lang.Object>();
+        ProcessBarcodeResult(results, barcodeResults);
 
         using var invertedBitmap = Bitmap.CreateBitmap(bitmap.Height, bitmap.Width, Bitmap.Config.Argb8888);
         using var canvas = new Canvas(invertedBitmap);
@@ -62,16 +65,15 @@ public static partial class Methods
         canvas.DrawBitmap(bitmap, 0, 0, paint);
 
         using var invertedImage = InputImage.FromBitmap(invertedBitmap, 0);
-        ProcessBarcodeResult(await scanner.Process(invertedImage), barcodeResults);
+        using var invertedResults = await scanner.Process(invertedImage).AsAsync<Java.Lang.Object>();
+        ProcessBarcodeResult(invertedResults, barcodeResults);
 
         return barcodeResults;
     }
     
     internal static void ProcessBarcodeResult(Java.Lang.Object inputResults, HashSet<BarcodeResult> outputResults, CoordinateTransform transform = null)
     {
-        if (inputResults is null)
-            return;
-        using var javaList = inputResults.JavaCast<ArrayList>();
+        using var javaList = inputResults?.JavaCast<ArrayList>();
         if (javaList?.IsEmpty ?? true)
             return;
 
@@ -103,12 +105,30 @@ public static partial class Methods
     internal static void InvertLuminance(Image image)
     {
         var yBuffer = image.GetPlanes()[0].Buffer;
+        
         if (yBuffer.IsDirect)
         {
             unsafe
             {
-                ulong* data = (ulong*)yBuffer.GetDirectBufferAddress();
-                Parallel.For(0, yBuffer.Capacity() / sizeof(ulong), parallelOptions, (i) => data[i] = ~data[i]);
+                if (AdvSimd.IsSupported && Vector128.IsHardwareAccelerated)
+                {
+                    var data = (byte*)yBuffer.GetDirectBufferAddress();
+                    var length = yBuffer.Capacity();
+                     
+                    for (int i = 0; i < length; i += Vector128<byte>.Count)
+                    {
+                        var vector = AdvSimd.LoadVector128(data + i);
+                        var inverted = AdvSimd.Not(vector);
+                        AdvSimd.Store(data + i, inverted);
+                    }
+                }
+                else
+                {
+                    var data = (ulong*)yBuffer.GetDirectBufferAddress();
+                    var length = yBuffer.Capacity() >> 3;
+
+                    Parallel.For(0, length, parallelOptions, (i) => data[i] = ~data[i]);
+                }
             }
         }
         else

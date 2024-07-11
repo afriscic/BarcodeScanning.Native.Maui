@@ -6,6 +6,7 @@ using CoreImage;
 using CoreMedia;
 using Foundation;
 using Microsoft.Maui.Graphics.Platform;
+using Microsoft.Maui.Platform;
 using System.Diagnostics;
 using UIKit;
 using Vision;
@@ -65,7 +66,8 @@ internal class CameraManager : IDisposable
 
         _previewLayer = new AVCaptureVideoPreviewLayer(_captureSession)
         {
-            VideoGravity = AVLayerVideoGravity.ResizeAspectFill,
+            BackgroundColor = _cameraView?.BackgroundColor?.ToPlatform().CGColor,
+            VideoGravity = AVLayerVideoGravity.ResizeAspectFill
         };
         _shapeLayer = new CAShapeLayer()
         {

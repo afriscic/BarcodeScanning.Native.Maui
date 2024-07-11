@@ -43,6 +43,7 @@ public static partial class Methods
         
         lock (outputResults)
         {
+            //TODO NSProcessInfo.ProcessInfo.OperatingSystemVersion.Major > 17 and add payloadData
             foreach (var barcode in inputResults)
             {
                 outputResults.Add(new BarcodeResult()

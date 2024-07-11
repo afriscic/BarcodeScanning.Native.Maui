@@ -8,6 +8,7 @@ using AndroidX.Camera.View.Transform;
 using AndroidX.Lifecycle;
 using Java.Util.Concurrent;
 using Microsoft.Maui.Graphics.Platform;
+using Microsoft.Maui.Platform;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
@@ -63,6 +64,7 @@ internal class CameraManager : IDisposable
             Controller = _cameraController,
             LayoutParameters = new RelativeLayout.LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
+        _previewView.SetBackgroundColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
         _previewView.SetImplementationMode(PreviewView.ImplementationMode.Compatible);
         _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
 
@@ -123,7 +125,7 @@ internal class CameraManager : IDisposable
             UpdateOutput();
             UpdateAnalyzer();
             UpdateTorch();
-            
+
             _cameraController.BindToLifecycle(lifecycleOwner);
             _cameraRunning = true;
         }
@@ -238,7 +240,7 @@ internal class CameraManager : IDisposable
         using var coordinateTransform = new CoordinateTransform(source, target);
 
         using var image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-        using var results = await _barcodeScanner.Process(image);
+        using var results = await _barcodeScanner.Process(image).AsAsync<Java.Lang.Object>();
         
         Methods.ProcessBarcodeResult(results, _barcodeResults, coordinateTransform);
 
@@ -246,7 +248,7 @@ internal class CameraManager : IDisposable
         {
             Methods.InvertLuminance(proxy.Image);
             using var invertedimage = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-            using var invertedresults = await _barcodeScanner.Process(invertedimage);
+            using var invertedresults = await _barcodeScanner.Process(invertedimage).AsAsync<Java.Lang.Object>();
 
             Methods.ProcessBarcodeResult(invertedresults, _barcodeResults, coordinateTransform);
         }
