@@ -16,7 +16,6 @@ namespace BarcodeScanning;
 internal class CameraManager : IDisposable
 {
     internal BarcodeView BarcodeView { get => _barcodeView; }
-    internal bool CaptureNextFrame { get => _cameraView?.CaptureNextFrame ?? false; }
 
     private AVCaptureDevice _captureDevice;
     private AVCaptureInput _captureInput;
@@ -107,8 +106,15 @@ internal class CameraManager : IDisposable
             {
                 _captureSession.StartRunning();
 
-                UpdateOutput();
-                UpdateAnalyzer();
+                if (_videoDataOutput is not null)
+                {
+                    _videoDataOutput.SetSampleBufferDelegate(null, null);
+                    _barcodeAnalyzer?.Dispose();
+                    _barcodeAnalyzer = new BarcodeAnalyzer(this);
+                    _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
+                }
+
+                UpdateSymbologies();
                 UpdateTorch();
                 UpdateZoomFactor();
             });
@@ -121,7 +127,7 @@ internal class CameraManager : IDisposable
         {
             if (_captureDevice is not null && _captureDevice.TorchActive)
             {
-                CaptureDeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
+                DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
 
                 if (_cameraView is not null)
                     _cameraView.TorchOn = false;
@@ -132,23 +138,18 @@ internal class CameraManager : IDisposable
         }
     }
 
-    internal void UpdateResolution()
+    internal void UpdateAimMode()
     {
-        if (_captureSession is not null)
-        {
-            _dispatchQueue.DispatchAsync(() => 
-            {
-                _captureSession.BeginConfiguration();
-                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
-                _captureSession.CommitConfiguration();
-            });
-        }
+        if (_cameraView?.AimMode ?? false)
+            _barcodeView?.Layer?.AddSublayer(_shapeLayer);
+        else
+            _shapeLayer?.RemoveFromSuperLayer();
     }
 
-    internal void UpdateAnalyzer()
+    internal void UpdateBackgroundColor()
     {
-        if (_detectBarcodesRequest is not null)
-            _detectBarcodesRequest.Symbologies = Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies);
+        if (_previewLayer is not null)
+            _previewLayer.BackgroundColor = _cameraView?.BackgroundColor?.ToPlatform().CGColor;
     }
 
     internal void UpdateCamera()
@@ -197,18 +198,48 @@ internal class CameraManager : IDisposable
             });
         }
     }
+    
+    internal void UpdateCameraEnabled()
+    {
+        if (_cameraView?.CameraEnabled ?? false)
+            Start();
+        else
+            Stop();
+    }
+
+    internal void UpdateResolution()
+    {
+        if (_captureSession is not null)
+        {
+            _dispatchQueue.DispatchAsync(() => 
+            {
+                _captureSession.BeginConfiguration();
+                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
+                _captureSession.CommitConfiguration();
+            });
+        }
+    }
+
+    internal void UpdateSymbologies()
+    {
+        if (_detectBarcodesRequest is not null && _cameraView is not null)
+            _detectBarcodesRequest.Symbologies = Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies);
+    }
+    
+    internal void UpdateTapToFocus() {}
+
     internal void UpdateTorch()
     {
         if (_captureDevice is not null && _captureDevice.HasTorch && _captureDevice.TorchAvailable)
         {
             if (_cameraView?.TorchOn ?? false)
-                CaptureDeviceLock(() => 
+                DeviceLock(() => 
                 {
                     if(_captureDevice.IsTorchModeSupported(AVCaptureTorchMode.On))
                         _captureDevice.TorchMode = AVCaptureTorchMode.On;
                 });
             else
-                CaptureDeviceLock(() =>
+                DeviceLock(() =>
                 {
                     if(_captureDevice.IsTorchModeSupported(AVCaptureTorchMode.Off))
                         _captureDevice.TorchMode = AVCaptureTorchMode.Off;
@@ -231,7 +262,7 @@ internal class CameraManager : IDisposable
                 factor = Math.Max(factor, _cameraView.MinZoomFactor);
                 factor = Math.Min(factor, _cameraView.MaxZoomFactor);
                 
-                CaptureDeviceLock(() => 
+                DeviceLock(() => 
                 {
                     _captureDevice.VideoZoomFactor = factor;
                     _cameraView.CurrentZoomFactor = factor;
@@ -240,29 +271,30 @@ internal class CameraManager : IDisposable
         }
     }
 
-    internal void HandleCameraEnabled()
+    internal void AnalyzeFrame(CMSampleBuffer sampleBuffer)
     {
-        if (_cameraView?.CameraEnabled ?? false)
-            Start();
-        else
-            Stop();
+        if (sampleBuffer is not null && _cameraView is not null && _previewLayer is not null && _barcodeResults is not null && _detectBarcodesRequest is not null && !_cameraView.PauseScanning)
+        {
+            DetectBarcode(sampleBuffer);
+
+            if (_cameraView.CaptureNextFrame)
+                CaptureImage(sampleBuffer);
+        }
     }
 
-    internal void HandleAimMode()
+    private void CaptureImage(CMSampleBuffer sampleBuffer)
     {
-        if (_cameraView?.AimMode ?? false)
-            _barcodeView?.Layer?.AddSublayer(_shapeLayer);
-        else
-            _shapeLayer?.RemoveFromSuperLayer();
+        _cameraView.CaptureNextFrame = false;
+        using var imageBuffer = sampleBuffer.GetImageBuffer();
+        using var cIImage = new CIImage(imageBuffer);
+        using var cIContext = new CIContext();
+        using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
+        var image = new PlatformImage(new UIImage(cGImage));
+        _cameraView.TriggerOnImageCaptured(image);
     }
 
-    internal void HandleTapToFocus() {}
-
-    internal void PerformBarcodeDetection(CMSampleBuffer sampleBuffer)
+    private void DetectBarcode(CMSampleBuffer sampleBuffer)
     {
-        if (_cameraView.PauseScanning)
-            return;
-
         _barcodeResults.Clear();
         _sequenceRequestHandler?.Perform([_detectBarcodesRequest], sampleBuffer, out _);
 
@@ -291,58 +323,7 @@ internal class CameraManager : IDisposable
         _cameraView.DetectionFinished(_barcodeResults);
     }
 
-    internal void CaptureImage(CMSampleBuffer sampleBuffer)
-    {
-        _cameraView.CaptureNextFrame = false;
-        using var imageBuffer = sampleBuffer.GetImageBuffer();
-        using var cIImage = new CIImage(imageBuffer);
-        using var cIContext = new CIContext();
-        using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
-        var image = new PlatformImage(new UIImage(cGImage));
-        _cameraView.TriggerOnImageCaptured(image);
-    }
-
-    private void FocusOnTap()
-    {
-        if ((_cameraView?.TapToFocusEnabled ?? false) && _captureDevice is not null && _captureDevice.FocusPointOfInterestSupported)
-        {
-            CaptureDeviceLock(() =>
-            {
-                _captureDevice.FocusPointOfInterest = _previewLayer.CaptureDevicePointOfInterestForPoint(_uITapGestureRecognizer.LocationInView(_barcodeView));
-                _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
-                _captureDevice.SubjectAreaChangeMonitoringEnabled = true;
-            });
-        }
-    }
-
-    private void ResetFocus()
-    {
-        if (_captureDevice is not null)
-        {
-            CaptureDeviceLock(() => 
-            {
-                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
-                    _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
-                else if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.AutoFocus))
-                    _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
-                
-                _captureDevice.SubjectAreaChangeMonitoringEnabled = false;
-            });
-        }
-    }
-
-    private void UpdateOutput()
-    {
-        if (_videoDataOutput is not null)
-        {
-            _videoDataOutput.SetSampleBufferDelegate(null, null);
-            _barcodeAnalyzer?.Dispose();
-            _barcodeAnalyzer = new BarcodeAnalyzer(this);
-            _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
-        }
-    }
-
-    private void CaptureDeviceLock(Action action)
+    private void DeviceLock(Action action)
     {
         DispatchQueue.MainQueue.DispatchAsync(() =>
         {
@@ -362,6 +343,35 @@ internal class CameraManager : IDisposable
                 }
             }
         });
+    }
+
+    private void FocusOnTap()
+    {
+        if ((_cameraView?.TapToFocusEnabled ?? false) && _captureDevice is not null && _captureDevice.FocusPointOfInterestSupported)
+        {
+            DeviceLock(() =>
+            {
+                _captureDevice.FocusPointOfInterest = _previewLayer.CaptureDevicePointOfInterestForPoint(_uITapGestureRecognizer.LocationInView(_barcodeView));
+                _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+                _captureDevice.SubjectAreaChangeMonitoringEnabled = true;
+            });
+        }
+    }
+
+    private void ResetFocus()
+    {
+        if (_captureDevice is not null)
+        {
+            DeviceLock(() => 
+            {
+                if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.ContinuousAutoFocus))
+                    _captureDevice.FocusMode = AVCaptureFocusMode.ContinuousAutoFocus;
+                else if (_captureDevice.IsFocusModeSupported(AVCaptureFocusMode.AutoFocus))
+                    _captureDevice.FocusMode = AVCaptureFocusMode.AutoFocus;
+                
+                _captureDevice.SubjectAreaChangeMonitoringEnabled = false;
+            });
+        }
     }
 
     public void Dispose()

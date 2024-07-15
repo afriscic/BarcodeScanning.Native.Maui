@@ -17,13 +17,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     {
         try
         {
-            if (sampleBuffer is not null)
-            {
-                if (_cameraManager.CaptureNextFrame)
-                    _cameraManager.CaptureImage(sampleBuffer);
-                else
-                    _cameraManager.PerformBarcodeDetection(sampleBuffer);
-            }
+            _cameraManager?.AnalyzeFrame(sampleBuffer);
         }
         catch (Exception ex)
         {

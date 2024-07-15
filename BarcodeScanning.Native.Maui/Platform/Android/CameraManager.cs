@@ -25,7 +25,6 @@ namespace BarcodeScanning;
 internal class CameraManager : IDisposable
 {
     internal BarcodeView BarcodeView { get => _barcodeView; }
-    internal bool CaptureNextFrame { get => _cameraView?.CaptureNextFrame ?? false; }
 
     private BarcodeAnalyzer _barcodeAnalyzer;
     private IBarcodeScanner _barcodeScanner;
@@ -93,9 +92,11 @@ internal class CameraManager : IDisposable
         _barcodeView = new BarcodeView(_context);
         _barcodeView.AddView(_relativeLayout);
 
-        DeviceDisplay.Current.MainDisplayInfoChanged += Current_MainDisplayInfoChanged;
+        DeviceDisplay.Current.MainDisplayInfoChanged += MainDisplayInfoChanged;
     }
 
+    //TODO Implement camera-mlkit-vision
+    //https://developer.android.com/reference/androidx/camera/mlkit/vision/MlKitAnalyzer
     internal void Start()
     { 
         if (_cameraController is not null)
@@ -122,8 +123,15 @@ internal class CameraManager : IDisposable
             if (_cameraController.ImageAnalysisTargetSize is null)
                 UpdateResolution();
 
-            UpdateOutput();
-            UpdateAnalyzer();
+            if (_cameraController is not null && _cameraExecutor is not null)
+            {
+                _cameraController.ClearImageAnalysisAnalyzer();
+                _barcodeAnalyzer?.Dispose();
+                _barcodeAnalyzer = new BarcodeAnalyzer(this);
+                _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
+            }
+
+            UpdateSymbologies();
             UpdateTorch();
 
             _cameraController.BindToLifecycle(lifecycleOwner);
@@ -150,14 +158,17 @@ internal class CameraManager : IDisposable
         }
     }
 
-    //TODO Implement camera-mlkit-vision
-    //https://developer.android.com/reference/androidx/camera/mlkit/vision/MlKitAnalyzer
-    internal void UpdateAnalyzer()
+    internal void UpdateAimMode()
     {
-        _barcodeScanner?.Dispose();
-        _barcodeScanner = MLKitBarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
-            .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
-            .Build());
+        if (_cameraView?.AimMode ?? false)
+            _relativeLayout?.AddView(_imageView);
+        else
+            _relativeLayout?.RemoveView(_imageView);
+    }
+
+    internal void UpdateBackgroundColor()
+    {
+        _previewView?.SetBackgroundColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
     }
 
     internal void UpdateCamera()
@@ -171,6 +182,14 @@ internal class CameraManager : IDisposable
         }
     }
 
+    internal void UpdateCameraEnabled()
+    {
+        if (_cameraView?.CameraEnabled ?? false)
+            Start();
+        else
+            Stop();
+    }
+
     //TODO Implement setImageAnalysisResolutionSelector
     //https://developer.android.com/reference/androidx/camera/view/CameraController#setImageAnalysisResolutionSelector(androidx.camera.core.resolutionselector.ResolutionSelector)
     internal void UpdateResolution()
@@ -180,6 +199,23 @@ internal class CameraManager : IDisposable
 
         if (_cameraRunning)
             Start();
+    }
+
+    internal void UpdateSymbologies()
+    {
+        if (_cameraView is not null)
+        {
+            _barcodeScanner?.Dispose();
+            _barcodeScanner = MLKitBarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
+                .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
+                .Build());
+        }
+    }
+
+    internal void UpdateTapToFocus() 
+    {
+        if (_cameraController is not null)
+            _cameraController.TapToFocusEnabled = _cameraView?.TapToFocusEnabled ?? false;
     }
 
     internal void UpdateTorch()
@@ -203,35 +239,28 @@ internal class CameraManager : IDisposable
         }            
     }
 
-    internal void HandleCameraEnabled()
+    internal void AnalyzeFrame(IImageProxy proxy)
     {
-        if (_cameraView?.CameraEnabled ?? false)
-            Start();
-        else
-            Stop();
+        if (proxy is not null && _cameraView is not null && _previewView is not null && _barcodeResults is not null && _barcodeScanner is not null && !_cameraView.PauseScanning)
+        {
+            DetectBarcode(proxy).Wait(2000);
+
+            if (_cameraView.CaptureNextFrame)
+                CaptureImage(proxy);
+        }
     }
 
-    internal void HandleAimMode()
+    private void CaptureImage(IImageProxy proxy)
     {
-        if (_cameraView?.AimMode ?? false)
-            _relativeLayout?.AddView(_imageView);
-        else
-            _relativeLayout?.RemoveView(_imageView);
+        _cameraView.CaptureNextFrame = false;
+        var image = new PlatformImage(proxy.ToBitmap());
+        _cameraView.TriggerOnImageCaptured(image);
     }
 
-    internal void HandleTapToFocus() 
+    private async Task DetectBarcode(IImageProxy proxy)
     {
-        if (_cameraController is not null)
-            _cameraController.TapToFocusEnabled = _cameraView?.TapToFocusEnabled ?? false;
-    }
-
-    internal async Task PerformBarcodeDetection(IImageProxy proxy)
-    {
-        if (_cameraView.PauseScanning)
-            return;
-
         _barcodeResults.Clear();
-        using var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView?.OutputTransform).ConfigureAwait(false);
+        using var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform).ConfigureAwait(false);
         using var source = new ImageProxyTransformFactory
         {
             UsingRotationDegrees = true
@@ -278,25 +307,7 @@ internal class CameraManager : IDisposable
         _cameraView.DetectionFinished(_barcodeResults);
     }
 
-    internal void CaptureImage(IImageProxy proxy)
-    {
-        _cameraView.CaptureNextFrame = false;
-        var image = new PlatformImage(proxy.ToBitmap());
-        _cameraView.TriggerOnImageCaptured(image);
-    }
-
-    private void UpdateOutput()
-    {
-        if (_cameraController is not null)
-        {
-            _cameraController.ClearImageAnalysisAnalyzer();
-            _barcodeAnalyzer?.Dispose();
-            _barcodeAnalyzer = new BarcodeAnalyzer(this);
-            _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
-        }
-    }
-    
-    private void Current_MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
+    private void MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
     {
         _ = Task.Run(async () =>
         {
@@ -310,12 +321,12 @@ internal class CameraManager : IDisposable
                 }
                 catch (Exception)
                 {
-                    DeviceDisplay.Current.MainDisplayInfoChanged -= Current_MainDisplayInfoChanged;
+                    DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChanged;
                 }
             });
         });
     }
-
+    
     public void Dispose()
     {
         Dispose(true);
@@ -328,7 +339,7 @@ internal class CameraManager : IDisposable
         {
             try
             {
-                DeviceDisplay.Current.MainDisplayInfoChanged -= Current_MainDisplayInfoChanged;
+                DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChanged;
             }
             catch (Exception)
             {

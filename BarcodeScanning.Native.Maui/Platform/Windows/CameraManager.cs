@@ -269,13 +269,13 @@ internal partial class CameraManager : IDisposable
         });
     }
 
-    internal void UpdateAnalyzer()
+    internal void UpdateSymbologies()
     {
         if (_cameraView is not null)
             _barcodeReader.Formats = Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies);
     }
 
-    internal void HandleCameraEnabled()
+    internal void UpdateCameraEnabled()
     {
         if (_cameraView?.CameraEnabled ?? false)
             Start();
@@ -283,7 +283,7 @@ internal partial class CameraManager : IDisposable
             Stop();
     }
 
-    internal void HandleAimMode()
+    internal void UpdateAimMode()
     {
         if (_cameraView?.AimMode ?? false)
             _barcodeView?.Children.Add(_aimDot);
@@ -291,7 +291,7 @@ internal partial class CameraManager : IDisposable
             _barcodeView?.Children.Remove(_aimDot);
     }
 
-    internal void HandleTapToFocus() { }
+    internal void UpdateTapToFocus() { }
 
     private void ReportZoomFactors()
     {

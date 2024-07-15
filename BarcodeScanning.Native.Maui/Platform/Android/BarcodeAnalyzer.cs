@@ -21,14 +21,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     {
         try
         {
-            if (proxy is not null)
-            {
-                if (_cameraManager.CaptureNextFrame)
-                    _cameraManager.CaptureImage(proxy);
-                else
-                    _cameraManager.PerformBarcodeDetection(proxy).Wait(2000);
-            }
-                
+            _cameraManager?.AnalyzeFrame(proxy);
         }
         catch (Exception ex)
         {
