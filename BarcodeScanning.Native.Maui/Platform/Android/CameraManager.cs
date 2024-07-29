@@ -269,7 +269,7 @@ internal class CameraManager : IDisposable
         using var coordinateTransform = new CoordinateTransform(source, target);
 
         using var image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-        using var results = await _barcodeScanner.Process(image).AsAsync<Java.Lang.Object>();
+        using var results = await _barcodeScanner.Process(image).AsAsync<Java.Lang.Object>().ConfigureAwait(false);
         
         Methods.ProcessBarcodeResult(results, _barcodeResults, coordinateTransform);
 
@@ -277,7 +277,7 @@ internal class CameraManager : IDisposable
         {
             Methods.InvertLuminance(proxy.Image);
             using var invertedimage = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-            using var invertedresults = await _barcodeScanner.Process(invertedimage).AsAsync<Java.Lang.Object>();
+            using var invertedresults = await _barcodeScanner.Process(invertedimage).AsAsync<Java.Lang.Object>().ConfigureAwait(false);
 
             Methods.ProcessBarcodeResult(invertedresults, _barcodeResults, coordinateTransform);
         }
