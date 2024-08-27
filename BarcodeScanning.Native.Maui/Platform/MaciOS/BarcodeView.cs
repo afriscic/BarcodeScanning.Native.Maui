@@ -31,8 +31,9 @@ public class BarcodeView : UIView
             {
                 _previewLayer.Frame = layer.Bounds;
 
-                if (_previewLayer.Connection is not null && _previewLayer.Connection.SupportsVideoOrientation)
-                    _previewLayer.Connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
+                var connection = _previewLayer.Connection;
+                if (connection is not null && connection.SupportsVideoOrientation)
+                    connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
                     {
                         UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
                         UIInterfaceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeRight,
