@@ -32,7 +32,7 @@ public partial class CameraView : View
     public static readonly BindableProperty VibrationOnDetectedProperty = BindableProperty.Create(nameof(VibrationOnDetected)
         , typeof(bool)
         , typeof(CameraView)
-        , true
+        , false
         , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).VibrationOnDetected = (bool)newValue);
     /// <summary>

@@ -15,7 +15,7 @@ public class BarcodeResult : IEquatable<BarcodeResult>
         if (other is null)
             return false;
 
-        if (this.RawValue == other.RawValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
+        if (this.DisplayValue == other.DisplayValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
             return true;
         else
             return false;
@@ -31,6 +31,6 @@ public class BarcodeResult : IEquatable<BarcodeResult>
     }
     public override int GetHashCode()
     {
-        return this.RawValue.GetHashCode();
+        return this.DisplayValue.GetHashCode();
     }
 }

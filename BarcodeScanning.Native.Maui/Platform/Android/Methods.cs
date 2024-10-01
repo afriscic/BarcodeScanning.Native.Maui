@@ -35,16 +35,17 @@ public static partial class Methods
         => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(stream));
     private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(Bitmap bitmap)
     {
-        if (bitmap is null)
-            return null;
-        
         var barcodeResults = new HashSet<BarcodeResult>();
+
+        if (bitmap is null)
+            return barcodeResults;
+        
         using var scanner = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
             .SetBarcodeFormats(Barcode.FormatAllFormats)
             .Build());
 
         using var image = InputImage.FromBitmap(bitmap, 0);
-        using var results = await scanner.Process(image).AsAsync<Java.Lang.Object>();
+        using var results = await scanner.Process(image);
         ProcessBarcodeResult(results, barcodeResults);
 
         using var invertedBitmap = Bitmap.CreateBitmap(bitmap.Height, bitmap.Width, Bitmap.Config.Argb8888);
@@ -65,7 +66,7 @@ public static partial class Methods
         canvas.DrawBitmap(bitmap, 0, 0, paint);
 
         using var invertedImage = InputImage.FromBitmap(invertedBitmap, 0);
-        using var invertedResults = await scanner.Process(invertedImage).AsAsync<Java.Lang.Object>();
+        using var invertedResults = await scanner.Process(invertedImage);
         ProcessBarcodeResult(invertedResults, barcodeResults);
 
         return barcodeResults;

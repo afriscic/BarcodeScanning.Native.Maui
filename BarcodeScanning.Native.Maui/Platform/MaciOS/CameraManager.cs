@@ -2,38 +2,33 @@ using AVFoundation;
 using CoreAnimation;
 using CoreFoundation;
 using CoreGraphics;
-using CoreImage;
-using CoreMedia;
 using Foundation;
-using Microsoft.Maui.Graphics.Platform;
 using Microsoft.Maui.Platform;
 using System.Diagnostics;
 using UIKit;
-using Vision;
 
 namespace BarcodeScanning;
 
 internal class CameraManager : IDisposable
 {
+    internal AVCaptureVideoPreviewLayer PreviewLayer { get => _previewLayer; }
     internal BarcodeView BarcodeView { get => _barcodeView; }
+    internal CameraView CameraView { get => _cameraView; }
 
     private AVCaptureDevice _captureDevice;
     private AVCaptureInput _captureInput;
-    private BarcodeAnalyzer _barcodeAnalyzer;
 
     private readonly AVCaptureVideoDataOutput _videoDataOutput;
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly AVCaptureSession _captureSession;
+    private readonly BarcodeAnalyzer _barcodeAnalyzer;
     private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
     private readonly CAShapeLayer _shapeLayer;
     private readonly DispatchQueue _dispatchQueue;
     private readonly NSObject _subjectAreaChangedNotificaion;
-    private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
-    private readonly VNSequenceRequestHandler _sequenceRequestHandler;
     private readonly UITapGestureRecognizer _uITapGestureRecognizer;
 
-    private readonly HashSet<BarcodeResult> _barcodeResults = [];
     private const int aimRadius = 8;
 
     internal CameraManager(CameraView cameraView)
@@ -41,7 +36,7 @@ internal class CameraManager : IDisposable
         _cameraView = cameraView;
         
         _captureSession = new AVCaptureSession();
-        _sequenceRequestHandler = new VNSequenceRequestHandler();
+        _barcodeAnalyzer = new BarcodeAnalyzer(this);
         _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue", new DispatchQueue.Attributes()
         {
             QualityOfService = DispatchQualityOfService.UserInitiated
@@ -50,11 +45,6 @@ internal class CameraManager : IDisposable
         {
             AlwaysDiscardsLateVideoFrames = true
         };
-        _detectBarcodesRequest = new VNDetectBarcodesRequest((request, error) => 
-        {
-            if (error is null)
-                Methods.ProcessBarcodeResult(request.GetResults<VNBarcodeObservation>(), _barcodeResults, _previewLayer);
-        });
 
         _uITapGestureRecognizer = new UITapGestureRecognizer(FocusOnTap);
         _subjectAreaChangedNotificaion = NSNotificationCenter.DefaultCenter.AddObserver(AVCaptureDevice.SubjectAreaDidChangeNotification, (n) => 
@@ -109,8 +99,6 @@ internal class CameraManager : IDisposable
                 if (_videoDataOutput is not null)
                 {
                     _videoDataOutput.SetSampleBufferDelegate(null, null);
-                    _barcodeAnalyzer?.Dispose();
-                    _barcodeAnalyzer = new BarcodeAnalyzer(this);
                     _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
                 }
 
@@ -222,8 +210,8 @@ internal class CameraManager : IDisposable
 
     internal void UpdateSymbologies()
     {
-        if (_detectBarcodesRequest is not null && _cameraView is not null)
-            _detectBarcodesRequest.Symbologies = Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies);
+        if (_barcodeAnalyzer is not null && _cameraView is not null)
+            _barcodeAnalyzer.UpdateSymbologies(Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies));
     }
     
     internal void UpdateTapToFocus() {}
@@ -269,58 +257,6 @@ internal class CameraManager : IDisposable
                 });
             }
         }
-    }
-
-    internal void AnalyzeFrame(CMSampleBuffer sampleBuffer)
-    {
-        if (sampleBuffer is not null && _cameraView is not null && _previewLayer is not null && _barcodeResults is not null && _detectBarcodesRequest is not null && !_cameraView.PauseScanning)
-        {
-            DetectBarcode(sampleBuffer);
-
-            if (_cameraView.CaptureNextFrame)
-                CaptureImage(sampleBuffer);
-        }
-    }
-
-    private void CaptureImage(CMSampleBuffer sampleBuffer)
-    {
-        _cameraView.CaptureNextFrame = false;
-        using var imageBuffer = sampleBuffer.GetImageBuffer();
-        using var cIImage = new CIImage(imageBuffer);
-        using var cIContext = new CIContext();
-        using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
-        var image = new PlatformImage(new UIImage(cGImage));
-        _cameraView.TriggerOnImageCaptured(image);
-    }
-
-    private void DetectBarcode(CMSampleBuffer sampleBuffer)
-    {
-        _barcodeResults.Clear();
-        _sequenceRequestHandler?.Perform([_detectBarcodesRequest], sampleBuffer, out _);
-
-        if (_cameraView.AimMode)
-        {
-            var previewCenter = new Point(_previewLayer.Bounds.Width / 2, _previewLayer.Bounds.Height / 2);
-
-            foreach (var barcode in _barcodeResults)
-            {
-                if (!barcode.PreviewBoundingBox.Contains(previewCenter))
-                    _barcodeResults.Remove(barcode);
-            }
-        }
-
-        if (_cameraView.ViewfinderMode)
-        {
-            var previewRect = new RectF(0, 0, (float)_previewLayer.Bounds.Width, (float)_previewLayer.Bounds.Height);
-
-            foreach (var barcode in _barcodeResults)
-            {
-                if (!previewRect.Contains(barcode.PreviewBoundingBox))
-                    _barcodeResults.Remove(barcode);
-            }
-        }
-
-        _cameraView.DetectionFinished(_barcodeResults);
     }
 
     private void DeviceLock(Action action)
@@ -406,8 +342,6 @@ internal class CameraManager : IDisposable
 
             _barcodeAnalyzer?.Dispose();
             _captureDevice?.Dispose();
-            _sequenceRequestHandler?.Dispose();
-            _detectBarcodesRequest?.Dispose();
             _uITapGestureRecognizer?.Dispose();
             _subjectAreaChangedNotificaion?.Dispose();
             _dispatchQueue?.Dispose();

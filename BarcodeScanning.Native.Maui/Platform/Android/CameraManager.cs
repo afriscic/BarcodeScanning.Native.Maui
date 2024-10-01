@@ -1,63 +1,84 @@
 using Android.Content;
-using Android.Gms.Extensions;
 using Android.Graphics;
 using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View;
 using AndroidX.Camera.View.Transform;
+using AndroidX.Core.Content;
 using AndroidX.Lifecycle;
 using Java.Util.Concurrent;
-using Microsoft.Maui.Graphics.Platform;
 using Microsoft.Maui.Platform;
 using Xamarin.Google.MLKit.Vision.BarCode;
-using Xamarin.Google.MLKit.Vision.Common;
 
 using static Android.Views.ViewGroup;
 
 using Color = Android.Graphics.Color;
 using MLKitBarcodeScanning = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning;
 using Paint = Android.Graphics.Paint;
-using Point = Microsoft.Maui.Graphics.Point;
-using RectF = Microsoft.Maui.Graphics.RectF;
 
 namespace BarcodeScanning;
 
 internal class CameraManager : IDisposable
 {
     internal BarcodeView BarcodeView { get => _barcodeView; }
+    internal IBarcodeScanner BarcodeScanner { get => _barcodeScanner; }
+    internal CameraView CameraView { get => _cameraView; }
+    internal PreviewView PreviewView { get => _previewView; }
 
-    private BarcodeAnalyzer _barcodeAnalyzer;
+    internal CameraState OpenedCameraState { get; set; }
+    internal bool RecalculateCoordinateTransform { get; set; }
+
     private IBarcodeScanner _barcodeScanner;
+    private ICameraInfo _currentCameraInfo;
 
+    private readonly BarcodeAnalyzer _barcodeAnalyzer;
     private readonly BarcodeView _barcodeView;
     private readonly CameraView _cameraView;
     private readonly Context _context;
     private readonly IExecutorService _cameraExecutor;
     private readonly ImageView _imageView;
     private readonly LifecycleCameraController _cameraController;
+    private readonly ILifecycleOwner _lifecycleOwner;
     private readonly PreviewView _previewView;
+    private readonly PreviewViewOnLayoutChangeListener _previewViewOnLayoutChangeListener;
     private readonly RelativeLayout _relativeLayout;
-    private readonly ZoomStateObserver _zoomStateObserver;
+    private readonly CameraStateObserver _cameraStateObserver;
 
-    private readonly HashSet<BarcodeResult> _barcodeResults = [];
     private const int aimRadius = 25;
-    private bool _cameraRunning = false;
 
     internal CameraManager(CameraView cameraView, Context context)
     {
         _context = context;
         _cameraView = cameraView;
 
+        if (_context is ILifecycleOwner)
+            _lifecycleOwner = _context as ILifecycleOwner;
+        else if ((_context as ContextWrapper)?.BaseContext is ILifecycleOwner)
+            _lifecycleOwner = (_context as ContextWrapper)?.BaseContext as ILifecycleOwner;
+        else if (Platform.CurrentActivity is ILifecycleOwner)
+            _lifecycleOwner = Platform.CurrentActivity as ILifecycleOwner;
+        else
+            _lifecycleOwner = null;
+
         _cameraExecutor = Executors.NewSingleThreadExecutor();
-        _zoomStateObserver = new ZoomStateObserver(this, _cameraView);
+        _barcodeAnalyzer = new BarcodeAnalyzer(this);
+
+        _cameraStateObserver = new CameraStateObserver(this, _cameraView);
         _cameraController = new LifecycleCameraController(_context)
         {
             TapToFocusEnabled = _cameraView?.TapToFocusEnabled ?? false,
             ImageAnalysisBackpressureStrategy = ImageAnalysis.StrategyKeepOnlyLatest
         };
         _cameraController.SetEnabledUseCases(CameraController.ImageAnalysis);
-        _cameraController.ZoomState.ObserveForever(_zoomStateObserver);
-        
+        _cameraController.ZoomState.ObserveForever(_cameraStateObserver);
+        _cameraController.InitializationFuture.AddListener(new Java.Lang.Runnable(() => 
+        {
+            _currentCameraInfo?.CameraState.RemoveObserver(_cameraStateObserver);
+            _currentCameraInfo = _cameraController.CameraInfo;
+            _currentCameraInfo?.CameraState.ObserveForever(_cameraStateObserver);
+        }), ContextCompat.GetMainExecutor(_context));
+
+        _previewViewOnLayoutChangeListener = new PreviewViewOnLayoutChangeListener(this);
         _previewView = new PreviewView(_context)
         {
             Controller = _cameraController,
@@ -66,6 +87,7 @@ internal class CameraManager : IDisposable
         _previewView.SetBackgroundColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
         _previewView.SetImplementationMode(PreviewView.ImplementationMode.Compatible);
         _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
+        _previewView.AddOnLayoutChangeListener(_previewViewOnLayoutChangeListener);
 
         var layoutParams = new RelativeLayout.LayoutParams(LayoutParams.WrapContent, LayoutParams.WrapContent);
         layoutParams.AddRule(LayoutRules.CenterInParent);
@@ -97,46 +119,26 @@ internal class CameraManager : IDisposable
 
     //TODO Implement camera-mlkit-vision
     //https://developer.android.com/reference/androidx/camera/mlkit/vision/MlKitAnalyzer
-    internal void Start()
+    internal void Start(bool skipResolution = false)
     { 
         if (_cameraController is not null)
         {
-            if (_cameraRunning)
-            {
+            if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
                 _cameraController.Unbind();
-                _cameraRunning = false;
-            }
-
-            ILifecycleOwner lifecycleOwner = null;
-            if (_context is ILifecycleOwner)
-                lifecycleOwner = _context as ILifecycleOwner;
-            else if ((_context as ContextWrapper)?.BaseContext is ILifecycleOwner)
-                lifecycleOwner = (_context as ContextWrapper)?.BaseContext as ILifecycleOwner;
-            else if (Platform.CurrentActivity is ILifecycleOwner)
-                lifecycleOwner = Platform.CurrentActivity as ILifecycleOwner;
-
-            if (lifecycleOwner is null)
-                return;
 
             if (_cameraController.CameraSelector is null)
                 UpdateCamera();
-            if (_cameraController.ImageAnalysisTargetSize is null)
+            if (_cameraController.ImageAnalysisTargetSize is null && !skipResolution)
                 UpdateResolution();
-
-            if (_cameraController is not null && _cameraExecutor is not null)
-            {
-                _cameraController.ClearImageAnalysisAnalyzer();
-                _barcodeAnalyzer?.Dispose();
-                _barcodeAnalyzer = new BarcodeAnalyzer(this);
+            if (_barcodeAnalyzer is not null && _cameraExecutor is not null)
                 _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
-            }
 
             UpdateSymbologies();
             UpdateTorch();
 
-            _cameraController.BindToLifecycle(lifecycleOwner);
-            _cameraRunning = true;
-        }
+            if (_lifecycleOwner is not null)
+                _cameraController.BindToLifecycle(_lifecycleOwner);
+        }   
     }
 
     internal void Stop()
@@ -151,10 +153,7 @@ internal class CameraManager : IDisposable
                     _cameraView.TorchOn = false;
             }
             
-            if (_cameraRunning)
-                _cameraController.Unbind();
-            
-            _cameraRunning = false;
+            _cameraController.Unbind();
         }
     }
 
@@ -197,8 +196,8 @@ internal class CameraManager : IDisposable
         if (_cameraController is not null)
             _cameraController.ImageAnalysisTargetSize = new CameraController.OutputSize(Methods.TargetResolution(_cameraView?.CaptureQuality));
 
-        if (_cameraRunning)
-            Start();
+        if (OpenedCameraState?.GetType() == CameraState.Type.Open || OpenedCameraState?.GetType() == CameraState.Type.Opening || OpenedCameraState?.GetType() == CameraState.Type.PendingOpen)
+            Start(true);
     }
 
     internal void UpdateSymbologies()
@@ -239,72 +238,19 @@ internal class CameraManager : IDisposable
         }            
     }
 
-    internal void AnalyzeFrame(IImageProxy proxy)
+    internal CoordinateTransform GetCoordinateTransform(IImageProxy proxy)
     {
-        if (proxy is not null && _cameraView is not null && _previewView is not null && _barcodeResults is not null && _barcodeScanner is not null && !_cameraView.PauseScanning)
-        {
-            DetectBarcode(proxy).Wait(2000);
-
-            if (_cameraView.CaptureNextFrame)
-                CaptureImage(proxy);
-        }
-    }
-
-    private void CaptureImage(IImageProxy proxy)
-    {
-        _cameraView.CaptureNextFrame = false;
-        var image = new PlatformImage(proxy.ToBitmap());
-        _cameraView.TriggerOnImageCaptured(image);
-    }
-
-    private async Task DetectBarcode(IImageProxy proxy)
-    {
-        _barcodeResults.Clear();
-        using var target = await MainThread.InvokeOnMainThreadAsync(() => _previewView.OutputTransform).ConfigureAwait(false);
-        using var source = new ImageProxyTransformFactory
+        var imageOutputTransform = new ImageProxyTransformFactory
         {
             UsingRotationDegrees = true
         }
         .GetOutputTransform(proxy);
-        using var coordinateTransform = new CoordinateTransform(source, target);
+        var previewOutputTransform = MainThread.InvokeOnMainThreadAsync(() => _previewView?.OutputTransform).Result;
 
-        using var image = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-        using var results = await _barcodeScanner.Process(image).AsAsync<Java.Lang.Object>().ConfigureAwait(false);
-        
-        Methods.ProcessBarcodeResult(results, _barcodeResults, coordinateTransform);
-
-        if (_cameraView.ForceInverted)
-        {
-            Methods.InvertLuminance(proxy.Image);
-            using var invertedimage = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
-            using var invertedresults = await _barcodeScanner.Process(invertedimage).AsAsync<Java.Lang.Object>().ConfigureAwait(false);
-
-            Methods.ProcessBarcodeResult(invertedresults, _barcodeResults, coordinateTransform);
-        }
-
-        if (_cameraView.AimMode)
-        {
-            var previewCenter = new Point(_previewView.Width / 2, _previewView.Height / 2);
-
-            foreach (var barcode in _barcodeResults)
-            {
-                if (!barcode.PreviewBoundingBox.Contains(previewCenter))
-                    _barcodeResults.Remove(barcode);
-            }
-        }
-
-        if (_cameraView.ViewfinderMode)
-        {
-            var previewRect = new RectF(0, 0, _previewView.Width, _previewView.Height);
-
-            foreach (var barcode in _barcodeResults)
-            {
-                if (!previewRect.Contains(barcode.PreviewBoundingBox))
-                    _barcodeResults.Remove(barcode);
-            }
-        }
-
-        _cameraView.DetectionFinished(_barcodeResults);
+        if (imageOutputTransform is not null && previewOutputTransform is not null)
+            return new CoordinateTransform(imageOutputTransform, previewOutputTransform);
+        else
+            return null;
     }
 
     private void MainDisplayInfoChanged(object sender, DisplayInfoChangedEventArgs e)
@@ -316,7 +262,6 @@ internal class CameraManager : IDisposable
             {
                 try
                 {
-                    if (_cameraRunning && _cameraView.CameraEnabled)
                         UpdateResolution();
                 }
                 catch (Exception)
@@ -337,17 +282,13 @@ internal class CameraManager : IDisposable
     {
         if (disposing)
         {
-            try
-            {
-                DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChanged;
-            }
-            catch (Exception)
-            {
-            }
+            DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChanged;
 
             Stop();
 
-            _cameraController?.ZoomState.RemoveObserver(_zoomStateObserver);
+            _cameraController?.ZoomState.RemoveObserver(_cameraStateObserver);
+            _currentCameraInfo?.CameraState.RemoveObserver(_cameraStateObserver);
+            _previewView?.RemoveOnLayoutChangeListener(_previewViewOnLayoutChangeListener);
             _barcodeView?.RemoveAllViews();
             _relativeLayout?.RemoveAllViews();
             
@@ -355,8 +296,10 @@ internal class CameraManager : IDisposable
             _relativeLayout?.Dispose();
             _imageView?.Dispose();
             _previewView?.Dispose();
+            _previewViewOnLayoutChangeListener?.Dispose();
             _cameraController?.Dispose();
-            _zoomStateObserver?.Dispose();
+            _currentCameraInfo?.Dispose();
+            _cameraStateObserver?.Dispose();
             _barcodeAnalyzer?.Dispose();
             _barcodeScanner?.Dispose();
             _cameraExecutor?.Dispose();

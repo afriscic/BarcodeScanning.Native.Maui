@@ -1,6 +1,5 @@
 ﻿using AVFoundation;
 using CoreGraphics;
-using CoreImage;
 using Foundation;
 using Microsoft.Maui.Graphics.Platform;
 using System.Text;
@@ -21,8 +20,10 @@ public static partial class Methods
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(stream)));
     private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(UIImage image)
     {
+        var barcodeResults = new HashSet<BarcodeResult>();
+
         if (image is null)
-            return null;
+            return barcodeResults;
         
         VNBarcodeObservation[] observations = null;
         using var barcodeRequest = new VNDetectBarcodesRequest((request, error) => {
@@ -31,7 +32,6 @@ public static partial class Methods
         });
         using var handler = new VNImageRequestHandler(image.CGImage, new NSDictionary());
         await Task.Run(() => handler.Perform([barcodeRequest], out _));
-        var barcodeResults = new HashSet<BarcodeResult>();
         ProcessBarcodeResult(observations, barcodeResults);
         return barcodeResults;
     }
@@ -43,7 +43,6 @@ public static partial class Methods
         
         lock (outputResults)
         {
-            //TODO NSProcessInfo.ProcessInfo.OperatingSystemVersion.Major > 17 and add payloadData
             foreach (var barcode in inputResults)
             {
                 outputResults.Add(new BarcodeResult()
@@ -52,7 +51,7 @@ public static partial class Methods
                     BarcodeFormat = ConvertFromIOSFormats(barcode.Symbology),
                     DisplayValue = barcode.PayloadStringValue,
                     RawValue = barcode.PayloadStringValue,
-                    RawBytes = GetRawBytes(barcode) ?? Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
+                    RawBytes = OperatingSystem.IsIOSVersionAtLeast(17) ? [.. barcode.PayloadData] : Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
                     PreviewBoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).AsRectangleF() ?? RectF.Zero,
                     ImageBoundingBox = barcode.BoundingBox.AsRectangleF()
                 });
@@ -166,18 +165,6 @@ public static partial class Methods
     private static CGRect InvertY(CGRect rect)
     {
         return new CGRect(rect.X, 1 - rect.Y - rect.Height, rect.Width, rect.Height);
-    }
-
-    private static byte[] GetRawBytes(VNBarcodeObservation barcodeObservation)
-    {
-        return barcodeObservation.Symbology switch
-        {
-            VNBarcodeSymbology.QR => ((CIQRCodeDescriptor)barcodeObservation.BarcodeDescriptor)?.ErrorCorrectedPayload?.ToArray(),
-            VNBarcodeSymbology.Aztec => ((CIAztecCodeDescriptor)barcodeObservation.BarcodeDescriptor)?.ErrorCorrectedPayload?.ToArray(),
-            VNBarcodeSymbology.Pdf417 => ((CIPdf417CodeDescriptor)barcodeObservation.BarcodeDescriptor)?.ErrorCorrectedPayload?.ToArray(),
-            VNBarcodeSymbology.DataMatrix => ((CIDataMatrixCodeDescriptor)barcodeObservation.BarcodeDescriptor)?.ErrorCorrectedPayload?.ToArray(),
-            _ => null
-        };
     }
 
     private static NSString SessionPresetTranslator(CaptureQuality quality)
