@@ -31,6 +31,6 @@ public class BarcodeResult : IEquatable<BarcodeResult>
     }
     public override int GetHashCode()
     {
-        return this.DisplayValue.GetHashCode();
+        return this.DisplayValue?.GetHashCode() ?? 0;
     }
 }
