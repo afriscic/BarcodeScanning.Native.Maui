@@ -78,10 +78,9 @@ internal class CameraManager : IDisposable
             if (_captureSession.Running)
                 _dispatchQueue.DispatchAsync(_captureSession.StopRunning);
             
-            if (_captureSession.Inputs.Length == 0)
-                UpdateCamera();
-            if (_captureSession.SessionPreset is null)
-                UpdateResolution();
+            UpdateCamera();
+            UpdateResolution();
+
             if (!_captureSession.Outputs.Contains(_videoDataOutput) && _captureSession.CanAddOutput(_videoDataOutput))
             {
                 _dispatchQueue.DispatchAsync(() =>
@@ -210,8 +209,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateSymbologies()
     {
-        if (_barcodeAnalyzer is not null && _cameraView is not null)
-            _barcodeAnalyzer.UpdateSymbologies(Methods.SelectedSymbologies(_cameraView.BarcodeSymbologies));
+        _barcodeAnalyzer?.UpdateSymbologies();
     }
     
     internal void UpdateTapToFocus() {}

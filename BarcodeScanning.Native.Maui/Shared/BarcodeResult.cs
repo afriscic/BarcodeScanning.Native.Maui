@@ -15,10 +15,21 @@ public class BarcodeResult : IEquatable<BarcodeResult>
         if (other is null)
             return false;
 
-        if (this.DisplayValue == other.DisplayValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
-            return true;
+        if (!string.IsNullOrEmpty(this.RawValue))
+        {
+            if (this.RawValue == other.RawValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
+                return true;
+            else
+                return false;
+        }
         else
-            return false;
+        {
+            if (this.DisplayValue == other.DisplayValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
+                return true;
+            else
+                return false;
+        }
+
     }
     public override bool Equals(object obj)
     {
@@ -31,6 +42,9 @@ public class BarcodeResult : IEquatable<BarcodeResult>
     }
     public override int GetHashCode()
     {
-        return this.DisplayValue.GetHashCode();
+        if (!string.IsNullOrEmpty(this.RawValue))
+            return this.RawValue.GetHashCode();
+        else
+            return this.DisplayValue.GetHashCode();
     }
 }

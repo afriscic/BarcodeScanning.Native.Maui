@@ -3,8 +3,10 @@ using AndroidX.Camera.Core;
 using AndroidX.Camera.View.Transform;
 using Microsoft.Maui.Graphics.Platform;
 using System.Diagnostics;
+using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
+using MLKitBarcodeScanning = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning;
 using Size = Android.Util.Size;
 
 namespace BarcodeScanning;
@@ -14,6 +16,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     public Size DefaultTargetResolution => Methods.TargetResolution(CaptureQuality.Medium);
     public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemOriginal;
 
+    private IBarcodeScanner _barcodeScanner;
     private CoordinateTransform _coordinateTransform;
     private bool _processInverted;
     private IImageProxy _proxy;
@@ -26,6 +29,19 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
         _barcodeResults = [];
         _cameraManager = cameraManager;
         _processInverted = false;
+
+        UpdateSymbologies();
+    }
+
+    internal void UpdateSymbologies()
+    {
+        if (_cameraManager?.CameraView is not null)
+        {
+            _barcodeScanner?.Dispose();
+            _barcodeScanner = MLKitBarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
+                .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraManager.CameraView.BarcodeSymbologies))
+                .Build());
+        }
     }
 
     public void Analyze(IImageProxy proxy)
@@ -47,7 +63,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
 
             _processInverted = _cameraManager.CameraView.ForceInverted;
             using var inputImage = InputImage.FromMediaImage(_proxy.Image, _proxy.ImageInfo.RotationDegrees);
-            _cameraManager.BarcodeScanner.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
+            _barcodeScanner?.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
         }
         catch (Exception)
         {
@@ -103,7 +119,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
 
                 _processInverted = false;
                 using var inputImage = InputImage.FromMediaImage(_proxy.Image, _proxy.ImageInfo.RotationDegrees);
-                _cameraManager.BarcodeScanner.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
+                _barcodeScanner?.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
             }
             catch (Exception)
             {
@@ -133,6 +149,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     protected override void Dispose(bool disposing)
     {
         _coordinateTransform?.Dispose();
+        _barcodeScanner?.Dispose();
         
         base.Dispose(disposing);
     }

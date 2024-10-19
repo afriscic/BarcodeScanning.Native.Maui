@@ -27,9 +27,10 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         _sequenceRequestHandler = new VNSequenceRequestHandler();
     }
 
-    internal void UpdateSymbologies(VNBarcodeSymbology[] symbologies)
+    internal void UpdateSymbologies()
     {
-        _detectBarcodesRequest.Symbologies = symbologies;
+        if (_cameraManager?.CameraView is not null)
+            _detectBarcodesRequest.Symbologies = Methods.SelectedSymbologies(_cameraManager.CameraView.BarcodeSymbologies);
     }
 
     public override void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)

@@ -8,12 +8,10 @@ using AndroidX.Core.Content;
 using AndroidX.Lifecycle;
 using Java.Util.Concurrent;
 using Microsoft.Maui.Platform;
-using Xamarin.Google.MLKit.Vision.BarCode;
 
 using static Android.Views.ViewGroup;
 
 using Color = Android.Graphics.Color;
-using MLKitBarcodeScanning = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning;
 using Paint = Android.Graphics.Paint;
 
 namespace BarcodeScanning;
@@ -21,14 +19,12 @@ namespace BarcodeScanning;
 internal class CameraManager : IDisposable
 {
     internal BarcodeView BarcodeView { get => _barcodeView; }
-    internal IBarcodeScanner BarcodeScanner { get => _barcodeScanner; }
     internal CameraView CameraView { get => _cameraView; }
     internal PreviewView PreviewView { get => _previewView; }
 
     internal CameraState OpenedCameraState { get; set; }
     internal bool RecalculateCoordinateTransform { get; set; }
 
-    private IBarcodeScanner _barcodeScanner;
     private ICameraInfo _currentCameraInfo;
 
     private readonly BarcodeAnalyzer _barcodeAnalyzer;
@@ -88,7 +84,7 @@ internal class CameraManager : IDisposable
         _previewView.SetImplementationMode(PreviewView.ImplementationMode.Compatible);
         _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
         _previewView.AddOnLayoutChangeListener(_previewViewOnLayoutChangeListener);
-
+        
         var layoutParams = new RelativeLayout.LayoutParams(LayoutParams.WrapContent, LayoutParams.WrapContent);
         layoutParams.AddRule(LayoutRules.CenterInParent);
         var circleBitmap = Bitmap.CreateBitmap(2 * aimRadius, 2 * aimRadius, Bitmap.Config.Argb8888);
@@ -126,13 +122,12 @@ internal class CameraManager : IDisposable
             if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
                 _cameraController.Unbind();
 
-            if (_cameraController.CameraSelector is null)
-                UpdateCamera();
-            if (_cameraController.ImageAnalysisTargetSize is null && !skipResolution)
+            if (!skipResolution)
                 UpdateResolution();
             if (_barcodeAnalyzer is not null && _cameraExecutor is not null)
                 _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
 
+            UpdateCamera();
             UpdateSymbologies();
             UpdateTorch();
 
@@ -202,13 +197,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateSymbologies()
     {
-        if (_cameraView is not null)
-        {
-            _barcodeScanner?.Dispose();
-            _barcodeScanner = MLKitBarcodeScanning.GetClient(new BarcodeScannerOptions.Builder()
-                .SetBarcodeFormats(Methods.ConvertBarcodeFormats(_cameraView.BarcodeSymbologies))
-                .Build());
-        }
+        _barcodeAnalyzer?.UpdateSymbologies();
     }
 
     internal void UpdateTapToFocus() 
@@ -301,7 +290,6 @@ internal class CameraManager : IDisposable
             _currentCameraInfo?.Dispose();
             _cameraStateObserver?.Dispose();
             _barcodeAnalyzer?.Dispose();
-            _barcodeScanner?.Dispose();
             _cameraExecutor?.Dispose();
         }
     }
