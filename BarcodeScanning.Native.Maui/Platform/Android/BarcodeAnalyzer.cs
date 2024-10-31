@@ -20,9 +20,12 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     private CoordinateTransform _coordinateTransform;
     private bool _processInverted;
     private IImageProxy _proxy;
+    private String lastDetectedBarcode = "";
+    private int consecutiveCount = 0;
 
     private readonly HashSet<BarcodeResult> _barcodeResults;
     private readonly CameraManager _cameraManager;
+    private TaskCompletionSource<BarcodeResult> barcodeCompletionsource= new  TaskCompletionSource<BarcodeResult>();
 
     internal BarcodeAnalyzer(CameraManager cameraManager)
     {
@@ -87,6 +90,29 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
                     {
                         if (!barcode.PreviewBoundingBox.Contains(previewCenter))
                             _barcodeResults.Remove(barcode);
+                        else
+                        {
+                            if (barcode != null)
+                            {
+                            //Iterates atleast 3 times to check it the code from subsequent frame are same - Streaming camera source -keeps getting incorrect results
+                                if (barcode.DisplayValue.Equals(lastDetectedBarcode))
+                                {
+                                    consecutiveCount++;
+                                    if (consecutiveCount >= 3)
+                                    {
+                                        Console.WriteLine("bar code recognized");
+                                        barcodeCompletionSource.SetResult(barcode);
+                                        // Call your .NET MAUI backend with the barcode value
+                                    }
+                                }
+                                else
+                                {
+                                    barcodeCompletionSource = new  TaskCompletionSource<BarcodeResult>();
+                                    lastDetectedBarcode = barcode.DisplayValue;
+                                    consecutiveCount = 1;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -101,7 +127,11 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
                     }
                 }
 
-                _cameraManager?.CameraView?.DetectionFinished(_barcodeResults);
+                MainThread.BeginInvokeOnMainThread( async()=>{
+                    var recognizedbarcodeResult = await barcodeCompletionSource.Task;
+                    if(!string.IsNullOrEmpty(recognizedbarcodeResult?.DisplayValue))
+                        _cameraManager?.CameraView?.DetectionFinished(new HashSet<BarcodeResult>(){recognizedbarcodeResult});
+                });
             }
         }
         catch (Exception)

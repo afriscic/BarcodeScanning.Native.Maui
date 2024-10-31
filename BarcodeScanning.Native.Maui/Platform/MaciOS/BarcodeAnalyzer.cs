@@ -14,7 +14,9 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     private readonly CameraManager _cameraManager;
     private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
-
+    private int consecutiveCount =0;
+    private TaskCompletionSource<BarcodeResult> barcodeCompletionSource= new TaskCompletionSource<BarcodeResult>();
+    private string lastDetectedBarcode = "";
     internal BarcodeAnalyzer(CameraManager cameraManager)
     {
         _barcodeResults = [];
@@ -59,6 +61,29 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 {
                     if (!barcode.PreviewBoundingBox.Contains(previewCenter))
                         _barcodeResults.Remove(barcode);
+                    else
+                        {
+                            if (barcode != null)
+                                {
+                                    if (barcode.DisplayValue.Equals(lastDetectedBarcode))
+                                    {
+                                        consecutiveCount++;
+                                        //Checksum added to keep the barcode more error free- especially in streaming source
+                                        if (consecutiveCount >= 3)
+                                        {
+                                            Console.WriteLine("bar code recognized");
+                                            barcodeCompletionSource.SetResult(barcode);
+                                            // Call your .NET MAUI backend with the barcode value
+                                        }
+                                    }
+                                    else
+                                    {
+                                        barcodeCompletionSource = new  TaskCompletionSource<BarcodeResult>();
+                                        lastDetectedBarcode = barcode.DisplayValue;
+                                        consecutiveCount = 1;
+                                    }
+                                }
+                        }
                 }
             }
 
@@ -73,7 +98,11 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-            _cameraManager.CameraView.DetectionFinished(_barcodeResults);
+          MainThread.BeginInvokeOnMainThread( async()=>{             
+                var recognizedbarcodeResult = await barcodeCompletionSource.Task;
+               if(!string.IsNullOrEmpty(recognizedbarcodeResult?.DisplayValue))
+                _cameraManager?.CameraView?.DetectionFinished(new HashSet<BarcodeResult>(){recognizedbarcodeResult}); 
+                });
         }
         catch (Exception ex)
         {
