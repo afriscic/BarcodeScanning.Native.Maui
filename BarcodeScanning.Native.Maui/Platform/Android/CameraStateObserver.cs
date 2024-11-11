@@ -14,7 +14,7 @@ internal class CameraStateObserver : Java.Lang.Object, IObserver
         _cameraView = cameraView;
     }
 
-    public void OnChanged(Java.Lang.Object value)
+    public void OnChanged(Java.Lang.Object? value)
     {
         if (value is not null && _cameraView is not null && _cameraManager is not null)
         {
@@ -31,8 +31,6 @@ internal class CameraStateObserver : Java.Lang.Object, IObserver
             {
                 _cameraManager.OpenedCameraState = cameraState;
             }
-
-            _cameraManager.RecalculateCoordinateTransform = true;
         }
     }
 }

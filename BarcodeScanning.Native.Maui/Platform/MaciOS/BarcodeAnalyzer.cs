@@ -37,21 +37,27 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     {
         try
         {
-            if (_cameraManager.CameraView.CaptureNextFrame)
+            if (_cameraManager?.CameraView?.CaptureNextFrame ?? false)
             {
                 _cameraManager.CameraView.CaptureNextFrame = false;
                 using var imageBuffer = sampleBuffer.GetImageBuffer();
-                using var cIImage = new CIImage(imageBuffer);
-                using var cIContext = new CIContext();
-                using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
-                var image = new PlatformImage(new UIImage(cGImage));
-                _cameraManager.CameraView.TriggerOnImageCaptured(image);
+                if (imageBuffer is not null)
+                {
+                    using var cIImage = new CIImage(imageBuffer);
+                    using var cIContext = new CIContext();
+                    using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
+                    if (cGImage is not null)
+                    {
+                        var image = new PlatformImage(new UIImage(cGImage));
+                        _cameraManager.CameraView.TriggerOnImageCaptured(image);
+                    }
+                }
             }
 
             _barcodeResults.Clear();
             _sequenceRequestHandler?.Perform([_detectBarcodesRequest], sampleBuffer, out _);
 
-            if (_cameraManager.CameraView.AimMode)
+            if (_cameraManager?.CameraView?.AimMode ?? false)
             {
                 var previewCenter = new Point(_cameraManager.PreviewLayer.Bounds.Width / 2, _cameraManager.PreviewLayer.Bounds.Height / 2);
 
@@ -62,7 +68,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-            if (_cameraManager.CameraView.ViewfinderMode)
+            if (_cameraManager?.CameraView?.ViewfinderMode ?? false)
             {
                 var previewRect = new RectF(0, 0, (float)_cameraManager.PreviewLayer.Bounds.Width, (float)_cameraManager.PreviewLayer.Bounds.Height);
 
@@ -73,7 +79,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-            _cameraManager.CameraView.DetectionFinished(_barcodeResults);
+            _cameraManager?.CameraView?.DetectionFinished(_barcodeResults);
         }
         catch (Exception ex)
         {

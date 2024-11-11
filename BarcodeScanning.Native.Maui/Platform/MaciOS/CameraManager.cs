@@ -13,21 +13,22 @@ internal class CameraManager : IDisposable
 {
     internal AVCaptureVideoPreviewLayer PreviewLayer { get => _previewLayer; }
     internal BarcodeView BarcodeView { get => _barcodeView; }
-    internal CameraView CameraView { get => _cameraView; }
+    internal CameraView? CameraView { get => _cameraView; }
 
-    private AVCaptureDevice _captureDevice;
-    private AVCaptureInput _captureInput;
+    private AVCaptureDevice? _captureDevice;
+    private AVCaptureInput? _captureInput;
 
     private readonly AVCaptureVideoDataOutput _videoDataOutput;
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly AVCaptureSession _captureSession;
     private readonly BarcodeAnalyzer _barcodeAnalyzer;
     private readonly BarcodeView _barcodeView;
-    private readonly CameraView _cameraView;
     private readonly CAShapeLayer _shapeLayer;
     private readonly DispatchQueue _dispatchQueue;
     private readonly NSObject _subjectAreaChangedNotificaion;
     private readonly UITapGestureRecognizer _uITapGestureRecognizer;
+
+    private readonly CameraView? _cameraView;
 
     private const int aimRadius = 8;
 
@@ -113,12 +114,7 @@ internal class CameraManager : IDisposable
         if (_captureSession is not null)
         {
             if (_captureDevice is not null && _captureDevice.TorchActive)
-            {
                 DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
-
-                if (_cameraView is not null)
-                    _cameraView.TorchOn = false;
-            }
 
             if (_captureSession.Running)
                 _dispatchQueue.DispatchAsync(_captureSession.StopRunning);

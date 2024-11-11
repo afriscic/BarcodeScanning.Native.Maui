@@ -33,6 +33,7 @@ public class BarcodeView : UIView
 
                 var connection = _previewLayer.Connection;
                 if (connection is not null && connection.SupportsVideoOrientation)
+                {
                     connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
                     {
                         UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
@@ -40,6 +41,7 @@ public class BarcodeView : UIView
                         UIInterfaceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
                         _ => AVCaptureVideoOrientation.Portrait
                     };
+                }
             }
         }
     }

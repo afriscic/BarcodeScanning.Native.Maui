@@ -304,8 +304,8 @@ public partial class CameraView : View
         set => SetValue(DeviceSwitchZoomFactorProperty, value);
     }
 
-    public event EventHandler<OnDetectionFinishedEventArg> OnDetectionFinished;
-    public event EventHandler<OnImageCapturedEventArg> OnImageCaptured;
+    public event EventHandler<OnDetectionFinishedEventArg>? OnDetectionFinished;
+    public event EventHandler<OnImageCapturedEventArg>? OnImageCaptured;
 
     private readonly HashSet<BarcodeResult> _pooledResults;
     private readonly Timer _poolingTimer; 
@@ -339,8 +339,8 @@ public partial class CameraView : View
                 {
                     if (_pooledResults.TryGetValue(result, out var currentResult))
                     {
-                        currentResult.PreviewBoundingBox = result.PreviewBoundingBox;
-                        currentResult.ImageBoundingBox = result.ImageBoundingBox;
+                        _pooledResults.Remove(currentResult);
+                        _pooledResults.Add(result);
                     }
                 }
             }
@@ -351,7 +351,7 @@ public partial class CameraView : View
         }
     }
 
-    private void PoolingTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+    private void PoolingTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
         TriggerOnDetectionFinished(_pooledResults);
         _pooledResults.Clear();

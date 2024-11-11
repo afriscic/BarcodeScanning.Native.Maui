@@ -33,7 +33,7 @@ public static partial class Methods
         => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(new URL(url).OpenStream()));
     public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(Stream stream)
         => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(stream));
-    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(Bitmap bitmap)
+    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(Bitmap? bitmap)
     {
         var barcodeResults = new HashSet<BarcodeResult>();
 
@@ -48,7 +48,7 @@ public static partial class Methods
         using var results = await scanner.Process(image);
         ProcessBarcodeResult(results, barcodeResults);
 
-        using var invertedBitmap = Bitmap.CreateBitmap(bitmap.Height, bitmap.Width, Bitmap.Config.Argb8888);
+        using var invertedBitmap = Bitmap.CreateBitmap(bitmap.Height, bitmap.Width, bitmap.GetConfig());
         using var canvas = new Canvas(invertedBitmap);
         using var paint = new Paint();
         using var matrixInvert = new ColorMatrix();
@@ -72,7 +72,7 @@ public static partial class Methods
         return barcodeResults;
     }
     
-    internal static void ProcessBarcodeResult(Java.Lang.Object inputResults, HashSet<BarcodeResult> outputResults, CoordinateTransform transform = null)
+    internal static void ProcessBarcodeResult(Java.Lang.Object? inputResults, HashSet<BarcodeResult> outputResults, CoordinateTransform? transform = null)
     {
         using var javaList = inputResults?.JavaCast<ArrayList>();
         if (javaList?.IsEmpty ?? true)
@@ -90,13 +90,16 @@ public static partial class Methods
             transform?.MapRect(rectF);
             var previewRect = transform is not null ? rectF.AsRectangleF() : RectF.Zero;
 
+            if (string.IsNullOrEmpty(mapped.DisplayValue) && string.IsNullOrEmpty(mapped.RawValue))
+                continue;
+
             outputResults.Add(new BarcodeResult()
             {
                 BarcodeType = ConvertBarcodeResultTypes(mapped.ValueType),
                 BarcodeFormat = (BarcodeFormats)mapped.Format,
-                DisplayValue = mapped.DisplayValue,
-                RawValue = mapped.RawValue,
-                RawBytes = mapped.GetRawBytes(),
+                DisplayValue = mapped.DisplayValue ?? string.Empty,
+                RawValue = mapped.RawValue ?? string.Empty,
+                RawBytes = mapped.GetRawBytes() ?? [],
                 PreviewBoundingBox = previewRect,
                 ImageBoundingBox = imageRect
             });
@@ -105,7 +108,9 @@ public static partial class Methods
 
     internal static void InvertLuminance(Image image)
     {
-        var yBuffer = image.GetPlanes()[0].Buffer;
+        var yBuffer = image.GetPlanes()?[0].Buffer;
+        if (yBuffer is null)
+            return;
         
         if (yBuffer.IsDirect)
         {
@@ -135,9 +140,9 @@ public static partial class Methods
         else
         {
             using var bits = BitSet.ValueOf(yBuffer);
-            bits.Flip(0, bits.Length());
+            bits?.Flip(0, bits.Length());
             yBuffer.Rewind();
-            yBuffer.Put(bits.ToByteArray());
+            yBuffer.Put(bits?.ToByteArray() ?? []);
         }
     }
 
@@ -198,27 +203,13 @@ public static partial class Methods
 
     internal static Size TargetResolution(CaptureQuality? captureQuality)
     {
-        if (DeviceDisplay.MainDisplayInfo.Orientation == DisplayOrientation.Portrait)
+        return captureQuality switch
         {
-            return captureQuality switch
-            {
-                CaptureQuality.Low => new Size(480, 640),
-                CaptureQuality.Medium => new Size(720, 1280),
-                CaptureQuality.High => new Size(1080, 1920),
-                CaptureQuality.Highest => new Size(2160, 3840),
-                _ => new Size(720, 1280)
-            };
-        }
-        else
-        {
-            return captureQuality switch
-            {
-                CaptureQuality.Low => new Size(640, 480),
-                CaptureQuality.Medium => new Size(1280, 720),
-                CaptureQuality.High => new Size(1920, 1080),
-                CaptureQuality.Highest => new Size(3840, 2160),
-                _ => new Size(1280, 720)
-            };
-        }
+            CaptureQuality.Low => new Size(640, 480),
+            CaptureQuality.Medium => new Size(1280, 720),
+            CaptureQuality.High => new Size(1920, 1080),
+            CaptureQuality.Highest => new Size(3840, 2160),
+            _ => new Size(1280, 720)
+        };
     }
 }

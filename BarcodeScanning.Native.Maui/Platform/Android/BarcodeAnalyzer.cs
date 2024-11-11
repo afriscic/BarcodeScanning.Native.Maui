@@ -1,4 +1,5 @@
 ﻿using Android.Gms.Tasks;
+using Android.Graphics;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View.Transform;
 using Microsoft.Maui.Graphics.Platform;
@@ -7,6 +8,8 @@ using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
 using MLKitBarcodeScanning = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning;
+using Point = Microsoft.Maui.Graphics.Point;
+using RectF = Microsoft.Maui.Graphics.RectF;
 using Size = Android.Util.Size;
 
 namespace BarcodeScanning;
@@ -14,12 +17,14 @@ namespace BarcodeScanning;
 internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnSuccessListener, IOnCompleteListener
 {
     public Size DefaultTargetResolution => Methods.TargetResolution(CaptureQuality.Medium);
-    public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemOriginal;
+    public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemViewReferenced;
 
-    private IBarcodeScanner _barcodeScanner;
-    private CoordinateTransform _coordinateTransform;
-    private bool _processInverted;
-    private IImageProxy _proxy;
+    private IBarcodeScanner? _barcodeScanner;
+    private CoordinateTransform? _coordinateTransform;
+    private IImageProxy? _proxy;
+
+    private bool _processInverted = false;
+    private bool _updateCoordinateTransform = false;
 
     private readonly HashSet<BarcodeResult> _barcodeResults;
     private readonly CameraManager _cameraManager;
@@ -28,7 +33,6 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     {
         _barcodeResults = [];
         _cameraManager = cameraManager;
-        _processInverted = false;
 
         UpdateSymbologies();
     }
@@ -46,10 +50,15 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
 
     public void Analyze(IImageProxy proxy)
     {
+        _proxy = proxy;
+
         try
         {
-            _proxy = proxy;
+            ArgumentNullException.ThrowIfNull(_proxy?.Image);
+            ArgumentNullException.ThrowIfNull(_cameraManager?.CameraView);
+
             _barcodeResults.Clear();
+            _processInverted = _cameraManager.CameraView.ForceInverted;
 
             if (_cameraManager.CameraView.CaptureNextFrame)
             {
@@ -58,28 +67,32 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
                 _cameraManager.CameraView.TriggerOnImageCaptured(image);
             }
 
-            if (_cameraManager.RecalculateCoordinateTransform || _coordinateTransform is null)
+            if (_updateCoordinateTransform)
+            {
                 _coordinateTransform = _cameraManager.GetCoordinateTransform(_proxy);
-
-            _processInverted = _cameraManager.CameraView.ForceInverted;
+                _updateCoordinateTransform = false;
+            }
+            
+            ArgumentNullException.ThrowIfNull(_barcodeScanner);
             using var inputImage = InputImage.FromMediaImage(_proxy.Image, _proxy.ImageInfo.RotationDegrees);
-            _barcodeScanner?.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
+            _barcodeScanner.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Debug.WriteLine(ex);
             CloseProxy();
         }
     }
 
-    public void OnSuccess(Java.Lang.Object result)
+    public void OnSuccess(Java.Lang.Object? result)
     {
         try
-        {
+        {   
             Methods.ProcessBarcodeResult(result, _barcodeResults, _coordinateTransform);
 
             if (!_processInverted)
             {
-                if (_cameraManager.CameraView.AimMode)
+                if (_cameraManager?.CameraView?.AimMode ?? false)
                 {
                     var previewCenter = new Point(_cameraManager.PreviewView.Width / 2, _cameraManager.PreviewView.Height / 2);
 
@@ -90,7 +103,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
                     }
                 }
 
-                if (_cameraManager.CameraView.ViewfinderMode)
+                if (_cameraManager?.CameraView?.ViewfinderMode ?? false)
                 {
                     var previewRect = new RectF(0, 0, _cameraManager.PreviewView.Width, _cameraManager.PreviewView.Height);
 
@@ -104,8 +117,9 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
                 _cameraManager?.CameraView?.DetectionFinished(_barcodeResults);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Debug.WriteLine(ex);
         }
     }
 
@@ -115,14 +129,18 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
         {
             try
             {
-                Methods.InvertLuminance(_proxy.Image);
-
                 _processInverted = false;
+
+                ArgumentNullException.ThrowIfNull(_proxy?.Image);
+                ArgumentNullException.ThrowIfNull(_barcodeScanner);
+
+                Methods.InvertLuminance(_proxy.Image);
                 using var inputImage = InputImage.FromMediaImage(_proxy.Image, _proxy.ImageInfo.RotationDegrees);
-                _barcodeScanner?.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
+                _barcodeScanner.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex);
                 CloseProxy();
             }
         }
@@ -130,7 +148,6 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
         {
             CloseProxy();
         }
-
     }
 
     private void CloseProxy()
@@ -144,6 +161,11 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
             Debug.WriteLine(ex);
             MainThread.BeginInvokeOnMainThread(() => _cameraManager?.Start());
         }
+    }
+
+    public void UpdateTransform(Matrix? matrix)
+    {
+        _updateCoordinateTransform = true;
     }
 
     protected override void Dispose(bool disposing)

@@ -2,7 +2,7 @@ namespace BarcodeScanning;
 
 internal class CameraManager : IDisposable
 {
-    internal BarcodeView BarcodeView { get; set; }
+    internal BarcodeView? BarcodeView { get; set; }
 
     internal void UpdateAimMode() => throw new NotImplementedException();
     internal void UpdateSymbologies() => throw new NotImplementedException();

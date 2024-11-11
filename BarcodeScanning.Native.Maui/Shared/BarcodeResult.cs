@@ -2,15 +2,15 @@
 
 public class BarcodeResult : IEquatable<BarcodeResult>
 {
-    public BarcodeTypes BarcodeType { get; set; }
-    public BarcodeFormats BarcodeFormat { get; set; }
-    public string DisplayValue { get; set; }
-    public string RawValue { get; set; }
-    public byte[] RawBytes { get; set; }
-    public RectF PreviewBoundingBox { get; set; }
-    public RectF ImageBoundingBox { get; set; }
+    public required BarcodeTypes BarcodeType { get; init; }
+    public required BarcodeFormats BarcodeFormat { get; init; }
+    public required string DisplayValue { get; init; }
+    public required string RawValue { get; init; }
+    public required byte[] RawBytes { get; init; }
+    public required RectF PreviewBoundingBox { get; init; }
+    public required RectF ImageBoundingBox { get; init; }
 
-    public bool Equals(BarcodeResult other)
+    public bool Equals(BarcodeResult? other)
     {
         if (other is null)
             return false;
@@ -31,7 +31,7 @@ public class BarcodeResult : IEquatable<BarcodeResult>
         }
 
     }
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is null)
             return false;

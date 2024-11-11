@@ -4,7 +4,7 @@ namespace BarcodeScanning;
 
 public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
 {
-    private CameraManager _cameraManager = null;
+    private CameraManager? _cameraManager;
 
     public static readonly PropertyMapper<CameraView, CameraViewHandler> CameraViewMapper = new()
     {
@@ -29,7 +29,7 @@ public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
 
     protected override void DisconnectHandler(BarcodeView barcodeView)
     {
-        _cameraManager.Dispose();
+        _cameraManager?.Dispose();
         base.DisconnectHandler(barcodeView);
     }
 }

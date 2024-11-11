@@ -13,19 +13,19 @@ public static partial class Methods
     public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromArray(imageArray)));
     public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(FileResult file)
-        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(await file.OpenReadAsync())));
+        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(await file.OpenReadAsync()) ?? []));
     public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(string url)
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromUrl(new NSUrl(url))));
     public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(Stream stream)
-        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(stream)));
-    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(UIImage image)
+        => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(stream) ?? []));
+    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(UIImage? image)
     {
         var barcodeResults = new HashSet<BarcodeResult>();
 
-        if (image is null)
+        if (image?.CGImage is null)
             return barcodeResults;
         
-        VNBarcodeObservation[] observations = null;
+        VNBarcodeObservation[] observations = [];
         using var barcodeRequest = new VNDetectBarcodesRequest((request, error) => {
             if (error is null)
                 observations = request.GetResults<VNBarcodeObservation>();
@@ -36,7 +36,7 @@ public static partial class Methods
         return barcodeResults;
     }
 
-    internal static void ProcessBarcodeResult(VNBarcodeObservation[] inputResults, HashSet<BarcodeResult> outputResults, AVCaptureVideoPreviewLayer previewLayer = null)
+    internal static void ProcessBarcodeResult(VNBarcodeObservation[] inputResults, HashSet<BarcodeResult> outputResults, AVCaptureVideoPreviewLayer? previewLayer = null)
     {
         if (inputResults is null || inputResults.Length == 0)
             return;
@@ -45,6 +45,9 @@ public static partial class Methods
         {
             foreach (var barcode in inputResults)
             {
+                if (string.IsNullOrEmpty(barcode.PayloadStringValue))
+                    continue;
+                
                 outputResults.Add(new BarcodeResult()
                 {
                     BarcodeType = BarcodeTypes.Unknown,

@@ -19,6 +19,8 @@ namespace BarcodeScanning.Test
             Quality.ItemsSource = qualitys;
             if (DeviceInfo.Platform != DevicePlatform.MacCatalyst)
                 Quality.Title = "Quality";
+            
+            Graphics.Drawable = _drawable;
         }
 
         protected override async void OnAppearing()
@@ -27,7 +29,6 @@ namespace BarcodeScanning.Test
             base.OnAppearing();
 
             Barcode.CameraEnabled = true;
-            Graphics.Drawable = _drawable;
         }
 
         protected override void OnDisappearing()

@@ -2,5 +2,9 @@
 
 public partial class CameraViewHandler
 {
-    protected override BarcodeView CreatePlatformView() => throw new NotImplementedException();
+    protected override BarcodeView CreatePlatformView()
+    {
+        _cameraManager = null;
+        throw new NotImplementedException();
+    }
 }
