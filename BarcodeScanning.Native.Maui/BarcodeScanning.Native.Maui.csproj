@@ -15,7 +15,7 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<Description>Barcode scanning library for .NET MAUI</Description>
 		<PackageProjectUrl>https://github.com/afriscic/BarcodeScanning.Native.Maui</PackageProjectUrl>
-		<PackageTags>.NET MAUI android ios macos scanner barcode scanning QR Datamatrix EAN UPC</PackageTags>
+		<PackageTags>.NET MAUI android ios macos barcode scanner scanning QR Datamatrix EAN UPC GS1 PDF417</PackageTags>
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
