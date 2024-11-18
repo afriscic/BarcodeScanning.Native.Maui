@@ -1,9 +1,11 @@
 ﻿using Android.Gms.Tasks;
 using Android.Graphics;
+using Android.Runtime;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View.Transform;
 using Microsoft.Maui.Graphics.Platform;
 using System.Diagnostics;
+using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
 
@@ -16,7 +18,7 @@ namespace BarcodeScanning;
 
 internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnSuccessListener, IOnCompleteListener
 {
-    public Size DefaultTargetResolution => Methods.TargetResolution(CaptureQuality.Medium);
+    public Size DefaultTargetResolution => Methods.TargetResolution(null);
     public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemViewReferenced;
 
     private IBarcodeScanner? _barcodeScanner;
@@ -25,14 +27,21 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
 
     private bool _processInverted = false;
     private bool _updateCoordinateTransform = false;
+    private Point _previewViewCenter = new();
+    private RectF _previewViewRect = new();
 
     private readonly HashSet<BarcodeResult> _barcodeResults;
     private readonly CameraManager _cameraManager;
+    private readonly Lock _resultsLock;
 
     internal BarcodeAnalyzer(CameraManager cameraManager)
     {
         _barcodeResults = [];
         _cameraManager = cameraManager;
+        _resultsLock = new();
+
+        _previewViewRect.X = 0;
+        _previewViewRect.Y = 0;
 
         UpdateSymbologies();
     }
@@ -56,9 +65,15 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
         {
             ArgumentNullException.ThrowIfNull(_proxy?.Image);
             ArgumentNullException.ThrowIfNull(_cameraManager?.CameraView);
+            ArgumentNullException.ThrowIfNull(_barcodeScanner);
 
-            _barcodeResults.Clear();
             _processInverted = _cameraManager.CameraView.ForceInverted;
+
+            if (_cameraManager.CameraView.PauseScanning)
+            {
+                CloseProxy();
+                return;
+            }
 
             if (_cameraManager.CameraView.CaptureNextFrame)
             {
@@ -70,10 +85,15 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
             if (_updateCoordinateTransform)
             {
                 _coordinateTransform = _cameraManager.GetCoordinateTransform(_proxy);
+
+                _previewViewCenter.X = _cameraManager.PreviewView.Width / 2;
+                _previewViewCenter.Y = _cameraManager.PreviewView.Height / 2;
+                _previewViewRect.Width = _cameraManager.PreviewView.Width;
+                _previewViewRect.Height = _cameraManager.PreviewView.Height;
+
                 _updateCoordinateTransform = false;
             }
-            
-            ArgumentNullException.ThrowIfNull(_barcodeScanner);
+
             using var inputImage = InputImage.FromMediaImage(_proxy.Image, _proxy.ImageInfo.RotationDegrees);
             _barcodeScanner.Process(inputImage).AddOnSuccessListener(this).AddOnCompleteListener(this);
         }
@@ -88,34 +108,34 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     {
         try
         {   
-            Methods.ProcessBarcodeResult(result, _barcodeResults, _coordinateTransform);
+            lock (_resultsLock)
+            {
+                if (_processInverted == _cameraManager?.CameraView?.ForceInverted)
+                    _barcodeResults.Clear();
+
+                if (result is not JavaList javaList)
+                    return;
+                
+                foreach (Barcode barcode in javaList)
+                {
+                    if (barcode is null)
+                        continue;
+                    if (string.IsNullOrEmpty(barcode.DisplayValue) && string.IsNullOrEmpty(barcode.RawValue))
+                        continue;
+
+                    var barcodeResult = barcode.AsBarcodeResult(_coordinateTransform);
+
+                    if ((_cameraManager?.CameraView?.AimMode ?? false) && !barcodeResult.PreviewBoundingBox.Contains(_previewViewCenter))
+                        continue;
+                    if ((_cameraManager?.CameraView?.ViewfinderMode ?? false) && !_previewViewRect.Contains(barcodeResult.PreviewBoundingBox))
+                        continue;
+
+                    _barcodeResults.Add(barcodeResult);
+                }   
+            }
 
             if (!_processInverted)
-            {
-                if (_cameraManager?.CameraView?.AimMode ?? false)
-                {
-                    var previewCenter = new Point(_cameraManager.PreviewView.Width / 2, _cameraManager.PreviewView.Height / 2);
-
-                    foreach (var barcode in _barcodeResults)
-                    {
-                        if (!barcode.PreviewBoundingBox.Contains(previewCenter))
-                            _barcodeResults.Remove(barcode);
-                    }
-                }
-
-                if (_cameraManager?.CameraView?.ViewfinderMode ?? false)
-                {
-                    var previewRect = new RectF(0, 0, _cameraManager.PreviewView.Width, _cameraManager.PreviewView.Height);
-
-                    foreach (var barcode in _barcodeResults)
-                    {
-                        if (!previewRect.Contains(barcode.PreviewBoundingBox))
-                            _barcodeResults.Remove(barcode);
-                    }
-                }
-
-                _cameraManager?.CameraView?.DetectionFinished(_barcodeResults);
-            }
+                _cameraManager?.CameraView?.DetectionFinished(_barcodeResults, _resultsLock);          
         }
         catch (Exception ex)
         {

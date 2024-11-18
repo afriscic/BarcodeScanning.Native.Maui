@@ -25,7 +25,7 @@ public class BarcodeView : UIView
         if (layer is not null) 
         {
             if (_shapeLayer is not null)
-                _shapeLayer.Position = new CGPoint(layer.Bounds.Width / 2, layer.Bounds.Height / 2);
+                _shapeLayer.Position = new CGPoint(layer.Bounds.GetMidX(), layer.Bounds.GetMidY());
 
             if (_previewLayer is not null)
             {

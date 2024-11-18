@@ -41,7 +41,7 @@ namespace BarcodeScanning.Test
         {
             _drawable.barcodeResults = e.BarcodeResults;
 
-            if (e.BarcodeResults.Length > 0)
+            if (e.BarcodeResults.Count > 0)
                 Barcode.CaptureNextFrame = true;
 
             Graphics.Invalidate();
@@ -96,7 +96,7 @@ namespace BarcodeScanning.Test
 
         private class BarcodeDrawable : IDrawable
         {
-            public BarcodeResult[]? barcodeResults;
+            public IReadOnlySet<BarcodeResult>? barcodeResults;
             public PlatformImage? image;
             public void Draw(ICanvas canvas, RectF dirtyRect)
             {
@@ -105,7 +105,7 @@ namespace BarcodeScanning.Test
                     canvas.DrawImage(image, 10, 10, 200, 200);
                 }
 
-                if (barcodeResults is not null && barcodeResults.Length > 0)
+                if (barcodeResults is not null && barcodeResults.Count > 0)
                 {
                     canvas.StrokeSize = 15;
                     canvas.StrokeColor = Colors.Red;

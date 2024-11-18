@@ -308,11 +308,13 @@ public partial class CameraView : View
     public event EventHandler<OnImageCapturedEventArg>? OnImageCaptured;
 
     private readonly HashSet<BarcodeResult> _pooledResults;
+    private readonly Lock _poolingLock;
     private readonly Timer _poolingTimer; 
 
     public CameraView()
     {
         _pooledResults = [];
+        _poolingLock = new();
         _poolingTimer = new()
         {
             AutoReset = false
@@ -320,68 +322,54 @@ public partial class CameraView : View
         _poolingTimer.Elapsed += PoolingTimer_Elapsed;
     }
 
-    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults)
+    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults, Lock resultLock)
     {
-        if (barCodeResults is null)
-            return;
-
         if (PoolingInterval > 0)
         {
-            if (!_poolingTimer.Enabled)
+            lock (_poolingLock)
             {
-                _poolingTimer.Interval = PoolingInterval;
-                _poolingTimer.Start();
-            }
-
-            foreach (var result in barCodeResults)
-            {
-                if (!_pooledResults.Add(result))
+                if (!_poolingTimer.Enabled)
                 {
-                    if (_pooledResults.TryGetValue(result, out var currentResult))
-                    {
-                        _pooledResults.Remove(currentResult);
-                        _pooledResults.Add(result);
-                    }
+                    _pooledResults.Clear();
+                    _poolingTimer.Interval = PoolingInterval;
+                    _poolingTimer.Start();
+                }
+
+                foreach (var result in barCodeResults)
+                {
+                    _pooledResults.Remove(result);
+                    _pooledResults.Add(result);
                 }
             }
         }
         else
         {
-            TriggerOnDetectionFinished(barCodeResults);
+            if (_poolingTimer.Enabled)
+                _poolingTimer.Stop();
+
+            TriggerOnDetectionFinished(barCodeResults, resultLock);
         }
     }
 
     private void PoolingTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        TriggerOnDetectionFinished(_pooledResults);
-        _pooledResults.Clear();
+        if (PoolingInterval > 0)
+            TriggerOnDetectionFinished(_pooledResults, _poolingLock);
     }
 
-    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults)
+    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults, Lock resultLock)
     {
-        if (PauseScanning)
-            return;
-    
-        try
-        {
-            if (VibrationOnDetected && barcodeResults.Count > 0)
-                Vibration.Vibrate();
-        }
-        catch (Exception)
-        {
-        }
-
-        BarcodeResult[] results;
-        if (barcodeResults.Count == 0)
-            results = [];
-        else
-            results = [.. barcodeResults];
+        if (VibrationOnDetected && barcodeResults.Count > 0)
+            Vibration.Vibrate();
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = results });
-            if (OnDetectionFinishedCommand?.CanExecute(results) ?? false)
-                OnDetectionFinishedCommand?.Execute(results);
+            lock (resultLock)
+            {
+                OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barcodeResults });
+                if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) ?? false)
+                    OnDetectionFinishedCommand?.Execute(barcodeResults);
+            }
         });
     }
     

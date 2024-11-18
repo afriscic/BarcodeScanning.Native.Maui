@@ -1,6 +1,6 @@
 ﻿namespace BarcodeScanning;
 
-public static class Extensions
+public static partial class Extensions
 {
     public static MauiAppBuilder UseBarcodeScanning(this MauiAppBuilder builder)
     {

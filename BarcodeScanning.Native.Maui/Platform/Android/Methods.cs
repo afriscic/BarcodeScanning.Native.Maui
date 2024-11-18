@@ -1,10 +1,8 @@
 ﻿using Android.Gms.Extensions;
 using Android.Graphics;
 using Android.Runtime;
-using AndroidX.Camera.View.Transform;
 using Java.Net;
 using Java.Util;
-using Microsoft.Maui.Graphics.Platform;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
@@ -13,7 +11,6 @@ using Xamarin.Google.MLKit.Vision.Common;
 
 using Image = Android.Media.Image;
 using Paint = Android.Graphics.Paint;
-using RectF = Microsoft.Maui.Graphics.RectF;
 using Size = Android.Util.Size;
 
 namespace BarcodeScanning;
@@ -25,15 +22,15 @@ public static partial class Methods
         MaxDegreeOfParallelism = Environment.ProcessorCount * 2
     };
 
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
         => await ProcessBitmapAsync(await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(FileResult file)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(FileResult file)
         => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(await file.OpenReadAsync()));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(string url)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(string url)
         => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(new URL(url).OpenStream()));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(Stream stream)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(Stream stream)
         => await ProcessBitmapAsync(await BitmapFactory.DecodeStreamAsync(stream));
-    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(Bitmap? bitmap)
+    private static async Task<IReadOnlySet<BarcodeResult>> ProcessBitmapAsync(Bitmap? bitmap)
     {
         var barcodeResults = new HashSet<BarcodeResult>();
 
@@ -72,37 +69,19 @@ public static partial class Methods
         return barcodeResults;
     }
     
-    internal static void ProcessBarcodeResult(Java.Lang.Object? inputResults, HashSet<BarcodeResult> outputResults, CoordinateTransform? transform = null)
+    private static void ProcessBarcodeResult(Java.Lang.Object? inputResults, HashSet<BarcodeResult> outputResults)
     {
-        using var javaList = inputResults?.JavaCast<ArrayList>();
-        if (javaList?.IsEmpty ?? true)
+        if (inputResults is not JavaList javaList)
             return;
 
-        foreach (var barcode in javaList.ToArray())
+        foreach (Barcode barcode in javaList)
         {
-            using var mapped = barcode.JavaCast<Barcode>();
-            if (mapped is null)
+            if (barcode is null)
+                continue;
+            if (string.IsNullOrEmpty(barcode.DisplayValue) && string.IsNullOrEmpty(barcode.RawValue))
                 continue;
 
-            using var rectF = mapped.BoundingBox.AsRectF();
-            var imageRect = rectF.AsRectangleF();
-            
-            transform?.MapRect(rectF);
-            var previewRect = transform is not null ? rectF.AsRectangleF() : RectF.Zero;
-
-            if (string.IsNullOrEmpty(mapped.DisplayValue) && string.IsNullOrEmpty(mapped.RawValue))
-                continue;
-
-            outputResults.Add(new BarcodeResult()
-            {
-                BarcodeType = ConvertBarcodeResultTypes(mapped.ValueType),
-                BarcodeFormat = (BarcodeFormats)mapped.Format,
-                DisplayValue = mapped.DisplayValue ?? string.Empty,
-                RawValue = mapped.RawValue ?? string.Empty,
-                RawBytes = mapped.GetRawBytes() ?? [],
-                PreviewBoundingBox = previewRect,
-                ImageBoundingBox = imageRect
-            });
+            outputResults.Add(barcode.AsBarcodeResult());
         }
     }
 
@@ -116,7 +95,7 @@ public static partial class Methods
         {
             unsafe
             {
-                if (AdvSimd.IsSupported && Vector128.IsHardwareAccelerated)
+                if (AdvSimd.IsSupported)
                 {
                     var data = (byte*)yBuffer.GetDirectBufferAddress();
                     var length = yBuffer.Capacity();

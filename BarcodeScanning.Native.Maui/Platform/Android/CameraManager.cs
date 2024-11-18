@@ -1,6 +1,5 @@
 using Android.Content;
 using Android.Graphics;
-using Android.Graphics.Drawables;
 using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.Core.ResolutionSelector;
@@ -15,7 +14,6 @@ using static Android.Views.ViewGroup;
 
 using Color = Android.Graphics.Color;
 using Paint = Android.Graphics.Paint;
-using Path = Android.Graphics.Path;
 
 namespace BarcodeScanning;
 
@@ -245,7 +243,7 @@ internal class CameraManager : IDisposable
         if (_previewView is not null)
         {
             _previewView.Controller = null;
-            await Task.Delay(50);
+            await Task.Delay(100);
             _previewView.Controller = _cameraController;
         }
     }

@@ -1,8 +1,5 @@
 ﻿using AVFoundation;
-using CoreGraphics;
 using Foundation;
-using Microsoft.Maui.Graphics.Platform;
-using System.Text;
 using UIKit;
 using Vision;
 
@@ -10,15 +7,15 @@ namespace BarcodeScanning;
 
 public static partial class Methods
 {
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromArray(imageArray)));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(FileResult file)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(FileResult file)
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(await file.OpenReadAsync()) ?? []));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(string url)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(string url)
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromUrl(new NSUrl(url))));
-    public static async Task<HashSet<BarcodeResult>> ScanFromImageAsync(Stream stream)
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(Stream stream)
         => await ProcessBitmapAsync(UIImage.LoadFromData(NSData.FromStream(stream) ?? []));
-    private static async Task<HashSet<BarcodeResult>> ProcessBitmapAsync(UIImage? image)
+    private static async Task<IReadOnlySet<BarcodeResult>> ProcessBitmapAsync(UIImage? image)
     {
         var barcodeResults = new HashSet<BarcodeResult>();
 
@@ -36,30 +33,18 @@ public static partial class Methods
         return barcodeResults;
     }
 
-    internal static void ProcessBarcodeResult(VNBarcodeObservation[] inputResults, HashSet<BarcodeResult> outputResults, AVCaptureVideoPreviewLayer? previewLayer = null)
+    private static void ProcessBarcodeResult(VNBarcodeObservation[] inputResults, HashSet<BarcodeResult> outputResults)
     {
-        if (inputResults is null || inputResults.Length == 0)
+        if (inputResults is null)
             return;
         
-        lock (outputResults)
+        foreach (var barcode in inputResults)
         {
-            foreach (var barcode in inputResults)
-            {
-                if (string.IsNullOrEmpty(barcode.PayloadStringValue))
-                    continue;
-                
-                outputResults.Add(new BarcodeResult()
-                {
-                    BarcodeType = BarcodeTypes.Unknown,
-                    BarcodeFormat = ConvertFromIOSFormats(barcode.Symbology),
-                    DisplayValue = barcode.PayloadStringValue,
-                    RawValue = barcode.PayloadStringValue,
-                    RawBytes = OperatingSystem.IsIOSVersionAtLeast(17) ? [.. barcode.PayloadData] : Encoding.ASCII.GetBytes(barcode.PayloadStringValue),
-                    PreviewBoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).AsRectangleF() ?? RectF.Zero,
-                    ImageBoundingBox = barcode.BoundingBox.AsRectangleF()
-                });
-            };
-        }
+            if (string.IsNullOrEmpty(barcode.PayloadStringValue))
+                continue;
+            
+            outputResults.Add(barcode.AsBarcodeResult());
+        };
     }
 
     internal static NSString GetBestSupportedPreset(AVCaptureSession captureSession, CaptureQuality quality)
@@ -134,7 +119,7 @@ public static partial class Methods
         return [.. symbologiesList];
     }
 
-    private static BarcodeFormats ConvertFromIOSFormats(VNBarcodeSymbology symbology)
+    internal static BarcodeFormats ConvertFromIOSFormats(VNBarcodeSymbology symbology)
     {
         return symbology switch
         {
@@ -163,11 +148,6 @@ public static partial class Methods
             VNBarcodeSymbology.MicroQR => BarcodeFormats.MicroQR,
             _ => BarcodeFormats.None
         };
-    }
-
-    private static CGRect InvertY(CGRect rect)
-    {
-        return new CGRect(rect.X, 1 - rect.Y - rect.Height, rect.Width, rect.Height);
     }
 
     private static NSString SessionPresetTranslator(CaptureQuality quality)

@@ -4,5 +4,5 @@ namespace BarcodeScanning;
 
 public class OnImageCapturedEventArg : EventArgs
 {
-    public PlatformImage? Image { get; set; } = null;
+    public required PlatformImage Image { get; set; }
 }
