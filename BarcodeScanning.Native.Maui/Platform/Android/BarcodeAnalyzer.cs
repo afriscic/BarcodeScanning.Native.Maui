@@ -27,6 +27,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
 
     private bool _processInverted = false;
     private bool _updateCoordinateTransform = false;
+    private int _transformDegrees = 0;
     private Point _previewViewCenter = new();
     private RectF _previewViewRect = new();
 
@@ -82,9 +83,10 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
                 _cameraManager.CameraView.TriggerOnImageCaptured(image);
             }
 
-            if (_updateCoordinateTransform)
+            if (_updateCoordinateTransform || _transformDegrees != _proxy.ImageInfo.RotationDegrees)
             {
                 _coordinateTransform = _cameraManager.GetCoordinateTransform(_proxy);
+                _transformDegrees = _proxy.ImageInfo.RotationDegrees;
 
                 _previewViewCenter.X = _cameraManager.PreviewView.Width / 2;
                 _previewViewCenter.Y = _cameraManager.PreviewView.Height / 2;
