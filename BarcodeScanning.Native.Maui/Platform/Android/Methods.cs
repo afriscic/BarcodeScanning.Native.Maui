@@ -3,8 +3,7 @@ using Android.Graphics;
 using Android.Runtime;
 using Java.Net;
 using Java.Util;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
+using System.Runtime.InteropServices;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
@@ -17,11 +16,12 @@ namespace BarcodeScanning;
 
 public static partial class Methods
 {
+    private static readonly bool neonSupported = IsNeonSupported();
     private static readonly ParallelOptions parallelOptions = new()
     {
         MaxDegreeOfParallelism = Environment.ProcessorCount * 2
     };
-
+    
     public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
         => await ProcessBitmapAsync(await BitmapFactory.DecodeByteArrayAsync(imageArray, 0, imageArray.Length));
     public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(FileResult file)
@@ -85,34 +85,32 @@ public static partial class Methods
         }
     }
 
+    [LibraryImport("InvertBytes.so")]
+    private static partial int InvertBytes(IntPtr data, int length);
+
     internal static void InvertLuminance(Image image)
     {
         var yBuffer = image.GetPlanes()?[0].Buffer;
         if (yBuffer is null)
             return;
-        
+
         if (yBuffer.IsDirect)
         {
-            unsafe
-            {
-                if (AdvSimd.IsSupported)
-                {
-                    var data = (byte*)yBuffer.GetDirectBufferAddress();
-                    var length = yBuffer.Capacity();
-                     
-                    for (int i = 0; i < length; i += Vector128<byte>.Count)
-                    {
-                        var vector = AdvSimd.LoadVector128(data + i);
-                        var inverted = AdvSimd.Not(vector);
-                        AdvSimd.Store(data + i, inverted);
-                    }
-                }
-                else
-                {
-                    var data = (ulong*)yBuffer.GetDirectBufferAddress();
-                    var length = yBuffer.Capacity() >> 3;
+            var data = yBuffer.GetDirectBufferAddress();
+            var length = yBuffer.Capacity();
 
-                    Parallel.For(0, length, parallelOptions, (i) => data[i] = ~data[i]);
+            int result;
+            if (neonSupported)
+                result = InvertBytes(data, length);
+            else
+                result = -1;
+
+            if (result != 0)
+            {
+                unsafe
+                {
+                    var dataPtr = (ulong*)data; 
+                    Parallel.For(0, length >> 3, parallelOptions, (i) => dataPtr[i] = ~dataPtr[i]);
                 }
             }
         }
@@ -190,5 +188,18 @@ public static partial class Methods
             CaptureQuality.Highest => new Size(3840, 2160),
             _ => new Size(1280, 720)
         };
+    }
+
+    private static bool IsNeonSupported()
+    {
+        try
+        {
+            var info = File.ReadAllText("/proc/cpuinfo");
+            return info.Contains("neon") || info.Contains("asimd");
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }

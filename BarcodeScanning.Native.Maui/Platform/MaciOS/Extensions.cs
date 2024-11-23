@@ -16,7 +16,7 @@ public static partial class Extensions
             BarcodeFormat = Methods.ConvertFromIOSFormats(barcode.Symbology),
             DisplayValue = barcode.PayloadStringValue ?? string.Empty,
             RawValue = barcode.PayloadStringValue ?? string.Empty,
-            RawBytes = OperatingSystem.IsIOSVersionAtLeast(17) ? [.. barcode.PayloadData ?? []] : Encoding.ASCII.GetBytes(barcode.PayloadStringValue ?? string.Empty),
+            RawBytes = OperatingSystem.IsIOSVersionAtLeast(17) ? barcode.PayloadData?.ToArray() ?? [] : Encoding.ASCII.GetBytes(barcode.PayloadStringValue ?? string.Empty),
             PreviewBoundingBox =  previewLayer?.MapToLayerCoordinates(InvertY(barcode.BoundingBox)).AsRectangleF() ?? RectF.Zero,
             ImageBoundingBox = barcode.BoundingBox.AsRectangleF()
         }; 

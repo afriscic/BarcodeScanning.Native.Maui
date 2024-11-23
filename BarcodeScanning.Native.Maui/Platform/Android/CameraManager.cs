@@ -230,7 +230,7 @@ internal class CameraManager : IDisposable
             UsingRotationDegrees = true
         }
         .GetOutputTransform(proxy);
-        var previewOutputTransform = MainThread.InvokeOnMainThreadAsync(() => _previewView?.OutputTransform).Result;
+        var previewOutputTransform = MainThread.InvokeOnMainThreadAsync(() => _previewView?.OutputTransform).GetAwaiter().GetResult();
 
         if (imageOutputTransform is not null && previewOutputTransform is not null)
             return new CoordinateTransform(imageOutputTransform, previewOutputTransform);

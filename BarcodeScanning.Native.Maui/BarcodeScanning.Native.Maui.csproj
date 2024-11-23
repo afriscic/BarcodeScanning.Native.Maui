@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<IsAotCompatible>true</IsAotCompatible>
 		<Nullable>enable</Nullable>
-		<Version>2.0.1</Version>
+		<Version>2.1.0</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -51,12 +51,15 @@
 	
 	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
 		<PackageReference Include="Xamarin.Google.MLKit.BarcodeScanning" Version="117.3.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.4.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.4.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.4.0.2" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.4.0.2" />
 
 		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.9.3.1" />
 		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.5.1" />
 		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.5.1" />
+
+		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\InvertBytes.so" />
+		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\InvertBytes.so" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">
