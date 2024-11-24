@@ -62,7 +62,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     ```csharp
     private void CameraView_OnDetectionFinished(object sender, OnDetectionFinishedEventArg e)
     {
-        if (e.BarcodeResults.Length > 0)
+        if (e.BarcodeResults.Count > 0)
             ...
     }
     ```
@@ -75,7 +75,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     ```csharp
     public ICommand DetectionFinishedCommand { get; set; }
     ...
-    DetectionFinishedCommand = new Command<BarcodeResult[]>(IReadOnlySet<BarcodeResult> result) =>
+    DetectionFinishedCommand = new Command<IReadOnlySet<BarcodeResult>>(IReadOnlySet<BarcodeResult> result) =>
     {
         if (result.Count > 0)
             ...
