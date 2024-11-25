@@ -18,8 +18,8 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
 
     private Point _previewCenter = new();
-    private RectF _previewRect = new();
-    private VNBarcodeObservation[] result = [];
+    private Rect _previewRect = new();
+    private VNBarcodeObservation[] _result = [];
 
     internal BarcodeAnalyzer(CameraManager cameraManager)
     {
@@ -29,9 +29,9 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         _detectBarcodesRequest = new VNDetectBarcodesRequest((request, error) => 
         {
             if (error is null)
-                result = request.GetResults<VNBarcodeObservation>();
+                _result = request.GetResults<VNBarcodeObservation>();
             else
-                result = [];
+                _result = [];
         });
         _sequenceRequestHandler = new VNSequenceRequestHandler();
 
@@ -69,16 +69,12 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-
             _sequenceRequestHandler?.Perform([_detectBarcodesRequest], sampleBuffer, out _);
-
-            if (result is null)
-                return;
 
             lock (_resultsLock)
             {
                 _barcodeResults.Clear();
-                foreach (var barcode in result)
+                foreach (var barcode in _result)
                 {
                     if (string.IsNullOrEmpty(barcode.PayloadStringValue))
                         continue;
@@ -96,8 +92,8 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 
                     if (_cameraManager?.CameraView?.ViewfinderMode ?? false)
                     {
-                        _previewRect.Width = (float)_cameraManager.PreviewLayer.Bounds.Width;
-                        _previewRect.Height = (float)_cameraManager.PreviewLayer.Bounds.Height;
+                        _previewRect.Width = _cameraManager.PreviewLayer.Bounds.Width;
+                        _previewRect.Height = _cameraManager.PreviewLayer.Bounds.Height;
 
                         if (!_previewRect.Contains(barcodeResult.PreviewBoundingBox))
                             continue;

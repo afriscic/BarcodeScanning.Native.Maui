@@ -335,10 +335,13 @@ public partial class CameraView : View
                     _poolingTimer.Start();
                 }
 
-                foreach (var result in barCodeResults)
+                lock (resultLock)
                 {
-                    _pooledResults.Remove(result);
-                    _pooledResults.Add(result);
+                    foreach (var result in barCodeResults)
+                    {
+                        _pooledResults.Remove(result);
+                        _pooledResults.Add(result);
+                    }
                 }
             }
         }

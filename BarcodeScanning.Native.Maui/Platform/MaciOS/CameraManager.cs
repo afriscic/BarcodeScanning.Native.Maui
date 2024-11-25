@@ -15,9 +15,6 @@ internal class CameraManager : IDisposable
     internal BarcodeView BarcodeView { get => _barcodeView; }
     internal CameraView? CameraView { get => _cameraView; }
 
-    private AVCaptureDevice? _captureDevice;
-    private AVCaptureInput? _captureInput;
-
     private readonly AVCaptureVideoDataOutput _videoDataOutput;
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
     private readonly AVCaptureSession _captureSession;
@@ -29,6 +26,9 @@ internal class CameraManager : IDisposable
     private readonly UITapGestureRecognizer _uITapGestureRecognizer;
 
     private readonly CameraView? _cameraView;
+
+    private AVCaptureDevice? _captureDevice;
+    private AVCaptureInput? _captureInput;
 
     private const int aimRadius = 8;
 

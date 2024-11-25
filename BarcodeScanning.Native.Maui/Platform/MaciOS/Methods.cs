@@ -150,7 +150,7 @@ public static partial class Methods
         };
     }
 
-    private static NSString SessionPresetTranslator(CaptureQuality quality)
+    private static NSString SessionPresetTranslator(CaptureQuality? quality)
     {
         return quality switch
         {

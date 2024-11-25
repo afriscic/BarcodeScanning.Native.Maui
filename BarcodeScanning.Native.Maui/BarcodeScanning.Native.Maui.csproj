@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<IsAotCompatible>true</IsAotCompatible>
 		<Nullable>enable</Nullable>
-		<Version>2.1.0</Version>
+		<Version>2.1.1</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -58,8 +58,8 @@
 		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.5.1" />
 		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.5.1" />
 
-		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\InvertBytes.so" />
-		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\InvertBytes.so" />
+		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\libInvertBytes.so" />
+		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\libInvertBytes.so" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net9.0-windows'))">

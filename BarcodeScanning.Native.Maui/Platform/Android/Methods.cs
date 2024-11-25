@@ -85,7 +85,7 @@ public static partial class Methods
         }
     }
 
-    [LibraryImport("InvertBytes.so")]
+    [LibraryImport("libInvertBytes.so")]
     private static partial int InvertBytes(IntPtr data, int length);
 
     internal static void InvertLuminance(Image image)
@@ -182,7 +182,7 @@ public static partial class Methods
     {
         return captureQuality switch
         {
-            CaptureQuality.Low => new Size(640, 480),
+            CaptureQuality.Low => new Size(854, 480),
             CaptureQuality.Medium => new Size(1280, 720),
             CaptureQuality.High => new Size(1920, 1080),
             CaptureQuality.Highest => new Size(3840, 2160),

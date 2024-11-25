@@ -25,8 +25,6 @@ internal class CameraManager : IDisposable
 
     internal CameraState? OpenedCameraState { get; set; }
 
-    private ICameraInfo? _currentCameraInfo;
-
     private readonly BarcodeAnalyzer _barcodeAnalyzer;
     private readonly BarcodeView _barcodeView;
     private readonly Context _context;
@@ -39,6 +37,8 @@ internal class CameraManager : IDisposable
     private readonly CameraStateObserver _cameraStateObserver;
 
     private readonly CameraView? _cameraView;
+
+    private ICameraInfo? _currentCameraInfo;
 
     private const int aimRadius = 25;
 
@@ -186,8 +186,9 @@ internal class CameraManager : IDisposable
             resolutionBuilder.SetAllowedResolutionMode(ResolutionSelector.PreferHigherResolutionOverCaptureRate);
             resolutionBuilder.SetResolutionStrategy(analysisStrategy);
             resolutionBuilder.SetAspectRatioStrategy(AspectRatioStrategy.Ratio169FallbackAutoStrategy);
-            _cameraController.ImageAnalysisResolutionSelector = resolutionBuilder.Build();
-            _cameraController.PreviewResolutionSelector = resolutionBuilder.Build();
+            var selector = resolutionBuilder.Build();
+            _cameraController.ImageAnalysisResolutionSelector = selector;
+            _cameraController.PreviewResolutionSelector = selector;
         }
     }
 

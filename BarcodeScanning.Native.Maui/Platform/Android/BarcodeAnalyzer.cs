@@ -11,7 +11,7 @@ using Xamarin.Google.MLKit.Vision.Common;
 
 using MLKitBarcodeScanning = Xamarin.Google.MLKit.Vision.BarCode.BarcodeScanning;
 using Point = Microsoft.Maui.Graphics.Point;
-using RectF = Microsoft.Maui.Graphics.RectF;
+using Rect = Microsoft.Maui.Graphics.Rect;
 using Size = Android.Util.Size;
 
 namespace BarcodeScanning;
@@ -21,6 +21,10 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     public Size DefaultTargetResolution => Methods.TargetResolution(null);
     public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemViewReferenced;
 
+    private readonly HashSet<BarcodeResult> _barcodeResults;
+    private readonly CameraManager _cameraManager;
+    private readonly Lock _resultsLock;
+
     private IBarcodeScanner? _barcodeScanner;
     private CoordinateTransform? _coordinateTransform;
     private IImageProxy? _proxy;
@@ -29,11 +33,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer, IOnS
     private bool _updateCoordinateTransform = false;
     private int _transformDegrees = 0;
     private Point _previewViewCenter = new();
-    private RectF _previewViewRect = new();
-
-    private readonly HashSet<BarcodeResult> _barcodeResults;
-    private readonly CameraManager _cameraManager;
-    private readonly Lock _resultsLock;
+    private Rect _previewViewRect = new();
 
     internal BarcodeAnalyzer(CameraManager cameraManager)
     {
