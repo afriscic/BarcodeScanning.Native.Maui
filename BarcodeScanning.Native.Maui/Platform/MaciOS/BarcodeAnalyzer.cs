@@ -41,18 +41,20 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 
     internal void UpdateSymbologies()
     {
-        if (_cameraManager?.CameraView is not null)
-            _detectBarcodesRequest.Symbologies = Methods.SelectedSymbologies(_cameraManager.CameraView.BarcodeSymbologies);
+        _detectBarcodesRequest.Symbologies = Methods.SelectedSymbologies(_cameraManager?.CameraView?.BarcodeSymbologies ?? BarcodeFormats.All);
     }
 
     public override void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
     {
         try
         {
-            if (_cameraManager?.CameraView?.PauseScanning ?? false)
+            ArgumentNullException.ThrowIfNull(_cameraManager?.CameraView);
+            ArgumentNullException.ThrowIfNull(sampleBuffer);
+
+            if (_cameraManager.CameraView.PauseScanning)
                 return;
 
-            if (_cameraManager?.CameraView?.CaptureNextFrame ?? false)
+            if (_cameraManager.CameraView.CaptureNextFrame)
             {
                 _cameraManager.CameraView.CaptureNextFrame = false;
                 using var imageBuffer = sampleBuffer.GetImageBuffer();
@@ -69,7 +71,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-            _sequenceRequestHandler?.Perform([_detectBarcodesRequest], sampleBuffer, out _);
+            _sequenceRequestHandler.Perform([_detectBarcodesRequest], sampleBuffer, out _);
 
             lock (_resultsLock)
             {
@@ -79,9 +81,9 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                     if (string.IsNullOrEmpty(barcode.PayloadStringValue))
                         continue;
 
-                    var barcodeResult = barcode.AsBarcodeResult(_cameraManager?.PreviewLayer);
+                    var barcodeResult = barcode.AsBarcodeResult(_cameraManager.PreviewLayer);
 
-                    if (_cameraManager?.CameraView?.AimMode ?? false)
+                    if (_cameraManager.CameraView.AimMode)
                     {
                         _previewCenter.X = _cameraManager.PreviewLayer.Bounds.GetMidX();
                         _previewCenter.Y = _cameraManager.PreviewLayer.Bounds.GetMidY();
@@ -90,7 +92,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                             continue;
                     }
 
-                    if (_cameraManager?.CameraView?.ViewfinderMode ?? false)
+                    if (_cameraManager.CameraView.ViewfinderMode)
                     {
                         _previewRect.Width = _cameraManager.PreviewLayer.Bounds.Width;
                         _previewRect.Height = _cameraManager.PreviewLayer.Bounds.Height;
@@ -103,7 +105,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 }
             }
 
-            _cameraManager?.CameraView?.DetectionFinished(_barcodeResults, _resultsLock);
+            _cameraManager.CameraView.DetectionFinished(_barcodeResults, _resultsLock);
         }
         catch (Exception ex)
         {

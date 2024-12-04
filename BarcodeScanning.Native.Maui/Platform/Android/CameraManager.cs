@@ -28,7 +28,7 @@ internal class CameraManager : IDisposable
     private readonly BarcodeAnalyzer _barcodeAnalyzer;
     private readonly BarcodeView _barcodeView;
     private readonly Context _context;
-    private readonly IExecutorService _cameraExecutor;
+    private readonly IExecutorService _analyzerExecutor;
     private readonly ImageView _imageView;
     private readonly LifecycleCameraController _cameraController;
     private readonly ILifecycleOwner _lifecycleOwner;
@@ -60,7 +60,7 @@ internal class CameraManager : IDisposable
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(executor);
         _lifecycleOwner = owner;
-        _cameraExecutor = executor;
+        _analyzerExecutor = executor;
 
         _barcodeAnalyzer = new BarcodeAnalyzer(this);
 
@@ -126,9 +126,10 @@ internal class CameraManager : IDisposable
         {
             if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
                 _cameraController.Unbind();
-
-            if (_barcodeAnalyzer is not null && _cameraExecutor is not null)
-                _cameraController.SetImageAnalysisAnalyzer(_cameraExecutor, _barcodeAnalyzer);
+            
+            _cameraController.ClearImageAnalysisAnalyzer();
+            if (_barcodeAnalyzer is not null && _analyzerExecutor is not null)
+                _cameraController.SetImageAnalysisAnalyzer(_analyzerExecutor, _barcodeAnalyzer);
 
             UpdateResolution();
             UpdateCamera();
@@ -269,6 +270,8 @@ internal class CameraManager : IDisposable
                 _currentCameraInfo?.CameraState.RemoveObserver(_cameraStateObserver);
             }
 
+            _cameraController?.ClearImageAnalysisAnalyzer();
+
             _barcodeView?.RemoveAllViews();
             _relativeLayout?.RemoveAllViews();
             
@@ -280,7 +283,7 @@ internal class CameraManager : IDisposable
             _currentCameraInfo?.Dispose();
             _cameraStateObserver?.Dispose();
             _barcodeAnalyzer?.Dispose();
-            _cameraExecutor?.Dispose();
+            _analyzerExecutor?.Dispose();
         }
     }
 }

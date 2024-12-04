@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<IsAotCompatible>true</IsAotCompatible>
 		<Nullable>enable</Nullable>
-		<Version>2.1.1</Version>
+		<Version>2.1.2</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
