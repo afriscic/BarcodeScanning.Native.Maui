@@ -85,7 +85,6 @@ internal class CameraManager : IDisposable
 
         _previewView = new PreviewView(_context)
         {
-            Controller = _cameraController,
             LayoutParameters = new RelativeLayout.LayoutParams(LayoutParams.MatchParent, LayoutParams.MatchParent)
         };
         _previewView.SetBackgroundColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
@@ -120,10 +119,13 @@ internal class CameraManager : IDisposable
         DeviceDisplay.Current.MainDisplayInfoChanged += MainDisplayInfoChanged;
     }
 
-    internal void Start()
+    internal async void Start()
     { 
         if (_cameraController is not null)
         {
+            if (_previewView is not null)
+                _previewView.Controller = null;
+
             if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
                 _cameraController.Unbind();
             
@@ -138,6 +140,12 @@ internal class CameraManager : IDisposable
 
             if (_lifecycleOwner is not null)
                 _cameraController.BindToLifecycle(_lifecycleOwner);
+            
+            if (_previewView is not null)
+            {
+                await Task.Delay(100);
+                _previewView.Controller = _cameraController;
+            }
         }   
     }
 
@@ -227,11 +235,7 @@ internal class CameraManager : IDisposable
 
     internal CoordinateTransform? GetCoordinateTransform(IImageProxy proxy)
     {
-        var imageOutputTransform = new ImageProxyTransformFactory
-        {
-            UsingRotationDegrees = true
-        }
-        .GetOutputTransform(proxy);
+        var imageOutputTransform = new ImageProxyTransformFactory().GetOutputTransform(proxy);
         var previewOutputTransform = MainThread.InvokeOnMainThreadAsync(() => _previewView?.OutputTransform).GetAwaiter().GetResult();
 
         if (imageOutputTransform is not null && previewOutputTransform is not null)
@@ -242,7 +246,7 @@ internal class CameraManager : IDisposable
 
     private async void MainDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e)
     {
-        if (_previewView is not null)
+        if (_previewView is not null && OpenedCameraState?.GetType() == CameraState.Type.Open)
         {
             _previewView.Controller = null;
             await Task.Delay(100);

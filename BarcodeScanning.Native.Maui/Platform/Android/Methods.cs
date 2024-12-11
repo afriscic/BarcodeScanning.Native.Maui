@@ -99,13 +99,7 @@ public static partial class Methods
             var data = yBuffer.GetDirectBufferAddress();
             var length = yBuffer.Capacity();
 
-            int result;
-            if (neonSupported)
-                result = InvertBytes(data, length);
-            else
-                result = -1;
-
-            if (result != 0)
+            if (!neonSupported || InvertBytes(data, length) != 0)
             {
                 unsafe
                 {

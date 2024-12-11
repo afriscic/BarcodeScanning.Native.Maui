@@ -54,23 +54,6 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             if (_cameraManager.CameraView.PauseScanning)
                 return;
 
-            if (_cameraManager.CameraView.CaptureNextFrame)
-            {
-                _cameraManager.CameraView.CaptureNextFrame = false;
-                using var imageBuffer = sampleBuffer.GetImageBuffer();
-                if (imageBuffer is not null)
-                {
-                    using var cIImage = new CIImage(imageBuffer);
-                    using var cIContext = new CIContext();
-                    using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
-                    if (cGImage is not null)
-                    {
-                        var image = new PlatformImage(new UIImage(cGImage));
-                        _cameraManager.CameraView.TriggerOnImageCaptured(image);
-                    }
-                }
-            }
-
             _sequenceRequestHandler.Perform([_detectBarcodesRequest], sampleBuffer, out _);
 
             lock (_resultsLock)
@@ -106,6 +89,23 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             }
 
             _cameraManager.CameraView.DetectionFinished(_barcodeResults, _resultsLock);
+
+            if (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>_cameraManager.CameraView.CaptureNextFrame = false);
+                using var imageBuffer = sampleBuffer.GetImageBuffer();
+                if (imageBuffer is not null)
+                {
+                    using var cIImage = new CIImage(imageBuffer);
+                    using var cIContext = new CIContext();
+                    using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
+                    if (cGImage is not null)
+                    {
+                        var image = new PlatformImage(new UIImage(cGImage));
+                        _cameraManager.CameraView.TriggerOnImageCaptured(image);
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {

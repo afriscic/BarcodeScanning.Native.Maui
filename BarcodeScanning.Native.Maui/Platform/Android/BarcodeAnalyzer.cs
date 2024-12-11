@@ -29,7 +29,6 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     private CoordinateTransform? _coordinateTransform;
 
     private bool _updateCoordinateTransform = false;
-    private int _transformDegrees = 0;
     private Point _previewViewCenter = new();
     private Rect _previewViewRect = new();
 
@@ -62,28 +61,20 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             if (_cameraManager.CameraView.PauseScanning)
                 return;
 
-            if (_cameraManager.CameraView.CaptureNextFrame)
-            {
-                _cameraManager.CameraView.CaptureNextFrame = false;
-                var image = new PlatformImage(proxy.ToBitmap());
-                _cameraManager.CameraView.TriggerOnImageCaptured(image);
-            }
-
-            if (_updateCoordinateTransform || _transformDegrees != proxy.ImageInfo.RotationDegrees)
+            if (_updateCoordinateTransform)
             {
                 _coordinateTransform?.Dispose();
                 _coordinateTransform = _cameraManager.GetCoordinateTransform(proxy);
-                _transformDegrees = proxy.ImageInfo.RotationDegrees;
 
-                _previewViewCenter.X = _cameraManager.PreviewView.Width / 2;
-                _previewViewCenter.Y = _cameraManager.PreviewView.Height / 2;
+                _previewViewCenter.X = _cameraManager.PreviewView.Width * 0.5;
+                _previewViewCenter.Y = _cameraManager.PreviewView.Height * 0.5;
                 _previewViewRect.Width = _cameraManager.PreviewView.Width;
                 _previewViewRect.Height = _cameraManager.PreviewView.Height;
 
                 _updateCoordinateTransform = false;
             }
 
-            using var inputImage = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
+            using var inputImage = InputImage.FromMediaImage(proxy.Image, 0);
             using var task  = _barcodeScanner.Process(inputImage);
             var result = TasksClass.Await(task);
 
@@ -91,7 +82,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             if (_cameraManager.CameraView.ForceInverted)
             {
                 Methods.InvertLuminance(proxy.Image);
-                using var invertedImage = InputImage.FromMediaImage(proxy.Image, proxy.ImageInfo.RotationDegrees);
+                using var invertedImage = InputImage.FromMediaImage(proxy.Image, 0);
                 using var invertedTask = _barcodeScanner.Process(invertedImage);
                 invertedResult = TasksClass.Await(invertedTask);
             }
@@ -101,12 +92,19 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
                 _barcodeResults.Clear();
                 AddResultToSet(result);
                 AddResultToSet(invertedResult);
-
-                result?.Dispose();
-                invertedResult?.Dispose();
             }
 
-            _cameraManager?.CameraView?.DetectionFinished(_barcodeResults, _resultsLock);
+            _cameraManager.CameraView.DetectionFinished(_barcodeResults, _resultsLock);
+
+            if (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>_cameraManager.CameraView.CaptureNextFrame = false);
+                var image = new PlatformImage(proxy.ToBitmap());
+                _cameraManager.CameraView.TriggerOnImageCaptured(image);
+            }
+
+            result?.Dispose();
+            invertedResult?.Dispose();
         }
         catch (Exception ex)
         {
