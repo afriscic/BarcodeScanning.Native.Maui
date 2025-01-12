@@ -75,29 +75,25 @@ internal class CameraManager : IDisposable
     internal void Start()
     {
         if (_captureSession is not null)
-        {
-            if (_captureSession.Running)
-                _dispatchQueue.DispatchAsync(_captureSession.StopRunning);
-            
+        {   
             UpdateCamera();
-            UpdateResolution();
 
-            if (!_captureSession.Outputs.Contains(_videoDataOutput) && _captureSession.CanAddOutput(_videoDataOutput))
-            {
-                _dispatchQueue.DispatchAsync(() =>
-                {
-                    _captureSession.BeginConfiguration();
-                    _captureSession.AddOutput(_videoDataOutput);
-                    _captureSession.CommitConfiguration();
-                });
-            }
+            _dispatchQueue.DispatchBarrierAsync(() =>
+            {   
+                if (_captureSession.Running)
+                    _captureSession.StopRunning();
 
-            _dispatchQueue.DispatchAsync(() =>
-            {
                 _captureSession.StartRunning();
 
                 if (_videoDataOutput is not null)
                 {
+                    if (!_captureSession.Outputs.Contains(_videoDataOutput) && _captureSession.CanAddOutput(_videoDataOutput))
+                    {
+                        _captureSession.BeginConfiguration();
+                        _captureSession.AddOutput(_videoDataOutput);
+                        _captureSession.CommitConfiguration();
+                    }
+                    
                     _videoDataOutput.SetSampleBufferDelegate(null, null);
                     _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
                 }
@@ -117,7 +113,7 @@ internal class CameraManager : IDisposable
                 DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
 
             if (_captureSession.Running)
-                _dispatchQueue.DispatchAsync(_captureSession.StopRunning);
+                _dispatchQueue.DispatchBarrierAsync(_captureSession.StopRunning);
         }
     }
 
@@ -139,46 +135,52 @@ internal class CameraManager : IDisposable
     {
         if (_captureSession is not null)
         {
-            _dispatchQueue.DispatchAsync(() =>
+            AVCaptureDevice? newDevice = null;
+            if (_cameraView?.CameraFacing == CameraFacing.Front)
             {
-                _captureSession.BeginConfiguration();
+                newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
+            }
+            else
+            {
+                newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+            }
+            newDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
 
-                if (_captureInput is not null)
+            if (_captureDevice != newDevice)
+            {
+                _dispatchQueue.DispatchBarrierAsync(() =>
                 {
-                    if (_captureSession.Inputs.Contains(_captureInput))
-                        _captureSession.RemoveInput(_captureInput);
+                    _captureSession.BeginConfiguration();
 
-                    _captureInput.Dispose();
-                }
+                    if (_captureInput is not null)
+                    {
+                        if (_captureSession.Inputs.Contains(_captureInput))
+                            _captureSession.RemoveInput(_captureInput);
 
-                _captureDevice?.Dispose();
-                if (_cameraView?.CameraFacing == CameraFacing.Front)
-                {
-                    _captureDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
-                }
-                else
-                {
-                    _captureDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                    _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                    _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                    _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                }
-                _captureDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
-
-                if (_captureDevice is not null)
-                {
-                    _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+                        _captureInput.Dispose();
+                    }
                     
-                    if (_captureSession.CanAddInput(_captureInput))
-                        _captureSession.AddInput(_captureInput);
-                }
+                    _captureDevice?.Dispose();
+                    _captureDevice = newDevice;
 
-                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
-                _captureSession.CommitConfiguration();
+                    if (_captureDevice is not null)
+                    {
+                        _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+                        
+                        if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
+                            _captureSession.AddInput(_captureInput);
+                    }
 
-                UpdateZoomFactor();
-                ResetFocus();
-            });
+                    _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
+                    _captureSession.CommitConfiguration();
+
+                    UpdateZoomFactor();
+                    ResetFocus();
+                });
+            }
         }
     }
     
@@ -194,7 +196,7 @@ internal class CameraManager : IDisposable
     {
         if (_captureSession is not null)
         {
-            _dispatchQueue.DispatchAsync(() => 
+            _dispatchQueue.DispatchBarrierAsync(() => 
             {
                 _captureSession.BeginConfiguration();
                 _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
@@ -255,7 +257,7 @@ internal class CameraManager : IDisposable
 
     private void DeviceLock(Action action)
     {
-        DispatchQueue.MainQueue.DispatchAsync(() =>
+        DispatchQueue.MainQueue.DispatchBarrierAsync(() =>
         {
             if (_captureDevice?.LockForConfiguration(out _) ?? false)
             {
@@ -314,7 +316,11 @@ internal class CameraManager : IDisposable
     {
         if (disposing)
         {
-            Stop();
+            if (_captureDevice is not null && _captureDevice.TorchActive)
+                DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
+
+            if (_captureSession?.Running ?? false)
+                _dispatchQueue?.DispatchBarrierSync(_captureSession.StopRunning);
 
             if (_subjectAreaChangedNotificaion is not null)
                 NSNotificationCenter.DefaultCenter.RemoveObserver(_subjectAreaChangedNotificaion);
