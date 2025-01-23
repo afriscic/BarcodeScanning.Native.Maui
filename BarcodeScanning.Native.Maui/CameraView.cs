@@ -229,6 +229,22 @@ public partial class CameraView : View
         set => SetValue(CaptureNextFrameProperty, value);
     }
 
+    public static readonly BindableProperty ForceFrameCaptureProperty = BindableProperty.Create(nameof(ForceFrameCapture)
+        , typeof(bool)
+        , typeof(CameraView)
+        , false
+        , BindingMode.TwoWay
+        , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).ForceFrameCapture = (bool)newValue);
+    /// <summary>
+    /// Forces the capture of camera frames regardless of whether a barcode is detected or not.
+    /// Is not automatically disabled after the frame is captured.
+    /// </summary>
+    public bool ForceFrameCapture
+    {
+        get => (bool)GetValue(ForceFrameCaptureProperty);
+        set => SetValue(ForceFrameCaptureProperty, value);
+    }
+
     public static readonly BindableProperty RequestZoomFactorProperty = BindableProperty.Create(nameof(RequestZoomFactor)
         , typeof(float)
         , typeof(CameraView)

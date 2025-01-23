@@ -96,7 +96,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 
             _cameraManager.CameraView.DetectionFinished(_barcodeResults, _resultsLock);
 
-            if (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0)
+            if (_cameraManager.CameraView.ForceFrameCapture || (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0))
             {
                 MainThread.BeginInvokeOnMainThread(() =>_cameraManager.CameraView.CaptureNextFrame = false);
                 var image = new PlatformImage(proxy.ToBitmap());

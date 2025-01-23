@@ -33,7 +33,7 @@ namespace BarcodeScanning.Test
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            Barcode.CameraEnabled = false;
+            //Barcode.CameraEnabled = false;
         }
 
         private void ContentPage_Unloaded(object sender, EventArgs e)

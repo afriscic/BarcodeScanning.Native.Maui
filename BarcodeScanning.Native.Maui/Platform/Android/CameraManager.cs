@@ -265,8 +265,6 @@ internal class CameraManager : IDisposable
         if (disposing)
         {
             DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChanged;
-
-            Stop();
             
             if (_cameraStateObserver is not null)
             {
