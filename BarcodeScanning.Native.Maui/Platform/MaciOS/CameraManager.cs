@@ -130,55 +130,55 @@ internal class CameraManager : IDisposable
 
     internal void UpdateCamera()
     {
-        AVCaptureDevice? newDevice = null;
-        if (_cameraView?.CameraFacing == CameraFacing.Front)
+        _dispatchQueue.DispatchBarrierAsync(() =>
         {
-            newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
-        }
-        else
-        {
-            newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-            newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-            newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-            newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-        }
-        newDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
-
-        if (_captureDevice != newDevice)
-        {
-            _dispatchQueue.DispatchBarrierAsync(() =>
+            AVCaptureDevice? newDevice = null;
+            if (_cameraView?.CameraFacing == CameraFacing.Front)
             {
-                if (_captureSession is not null)
+                newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
+            }
+            else
+            {
+                newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+            }
+            newDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+
+            if (newDevice is null || _captureDevice == newDevice)
+                return;
+
+            if (_captureSession is not null)
+            {
+                _captureSession.BeginConfiguration();
+
+                if (_captureInput is not null)
                 {
-                    _captureSession.BeginConfiguration();
+                    if (_captureSession.Inputs.Contains(_captureInput))
+                        _captureSession.RemoveInput(_captureInput);
 
-                    if (_captureInput is not null)
-                    {
-                        if (_captureSession.Inputs.Contains(_captureInput))
-                            _captureSession.RemoveInput(_captureInput);
-
-                        _captureInput.Dispose();
-                    }
-                    
-                    _captureDevice?.Dispose();
-                    _captureDevice = newDevice;
-
-                    if (_captureDevice is not null)
-                    {
-                        _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
-                        
-                        if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
-                            _captureSession.AddInput(_captureInput);
-                    }
-
-                    _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
-                    _captureSession.CommitConfiguration();
-
-                    UpdateZoomFactor();
-                    ResetFocus();
+                    _captureInput.Dispose();
                 }
-            });
-        }
+                
+                _captureDevice?.Dispose();
+                _captureDevice = newDevice;
+
+                if (_captureDevice is not null)
+                {
+                    _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+                    
+                    if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
+                        _captureSession.AddInput(_captureInput);
+                }
+
+                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
+                _captureSession.CommitConfiguration();
+
+                UpdateZoomFactor();
+                ResetFocus();
+            }
+        });
     }
     
     internal void UpdateCameraEnabled()
