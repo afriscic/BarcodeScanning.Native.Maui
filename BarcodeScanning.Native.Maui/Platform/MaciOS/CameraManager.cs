@@ -166,7 +166,7 @@ internal class CameraManager : IDisposable
 
                 if (_captureDevice is not null)
                 {
-                    _captureInput = new AVCaptureDeviceInput(_captureDevice, out _);
+                    _captureInput = AVCaptureDeviceInput.FromDevice(_captureDevice);
                     
                     if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
                         _captureSession.AddInput(_captureInput);
