@@ -1,4 +1,5 @@
-﻿using System.Windows.Input;
+﻿using System.Diagnostics;
+using System.Windows.Input;
 using Microsoft.Maui.Graphics.Platform;
 
 using Timer = System.Timers.Timer;
@@ -378,8 +379,15 @@ public partial class CameraView : View
 
     private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults, Lock resultLock)
     {
-        if (VibrationOnDetected && barcodeResults.Count > 0)
-            Vibration.Vibrate();
+        try
+        {
+            if (VibrationOnDetected && barcodeResults.Count > 0 && Vibration.Default.IsSupported)
+                Vibration.Default.Vibrate();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine(ex);
+        }
 
         MainThread.BeginInvokeOnMainThread(() =>
         {

@@ -37,6 +37,7 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
     Edit `AndroidManifest.xml` file (under the Platforms\Android folder) and add the following permissions inside of the `manifest` node:
     ```xml
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     ```
     #### iOS/macOS
     Edit `info.plist` file (under the Platforms\iOS or Platforms\MacCatalyst folder) and add the following permissions inside of the `dict` node:

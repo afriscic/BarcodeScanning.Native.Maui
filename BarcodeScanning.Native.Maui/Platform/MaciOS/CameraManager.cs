@@ -171,12 +171,11 @@ internal class CameraManager : IDisposable
                     if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
                         _captureSession.AddInput(_captureInput);
                 }
-
-                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
                 _captureSession.CommitConfiguration();
 
                 UpdateZoomFactor();
                 ResetFocus();
+                UpdateResolution();
             }
         });
     }
