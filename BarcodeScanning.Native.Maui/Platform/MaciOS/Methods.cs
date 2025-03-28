@@ -48,10 +48,8 @@ public static partial class Methods
     }
 
     internal static NSString GetBestSupportedPreset(AVCaptureSession captureSession, CaptureQuality quality)
-    {
-        ArgumentNullException.ThrowIfNull(captureSession);
-                
-        while (!captureSession.CanSetSessionPreset(SessionPresetTranslator(quality)) && quality != CaptureQuality.Low)
+    {                
+        while (!(captureSession?.CanSetSessionPreset(SessionPresetTranslator(quality)) ?? false) && quality != CaptureQuality.Low)
         {
             quality -= 1;
         }

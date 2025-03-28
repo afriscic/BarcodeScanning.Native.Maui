@@ -76,32 +76,29 @@ internal class CameraManager : IDisposable
 { 
         UpdateCamera();
 
-        _dispatchQueue.DispatchBarrierAsync(() =>
+        _dispatchQueue?.DispatchBarrierAsync(() =>
         {   
-            if (_captureSession is not null)
-            {  
-                if (_captureSession.Running)
-                    _captureSession.StopRunning();
+            if (_captureSession?.Running ?? false)
+                _captureSession?.StopRunning();
 
-                _captureSession.StartRunning();
+            _captureSession?.StartRunning();
 
-                if (_videoDataOutput is not null)
-                {
-                    if (!_captureSession.Outputs.Contains(_videoDataOutput) && _captureSession.CanAddOutput(_videoDataOutput))
-                    {
-                        _captureSession.BeginConfiguration();
-                        _captureSession.AddOutput(_videoDataOutput);
-                        _captureSession.CommitConfiguration();
-                    }
-                    
-                    _videoDataOutput.SetSampleBufferDelegate(null, null);
-                    _videoDataOutput.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
-                }
-
-                UpdateSymbologies();
-                UpdateTorch();
-                UpdateZoomFactor();
+            if (_captureSession is not null &&
+                _videoDataOutput is not null &&
+                !_captureSession.Outputs.Contains(_videoDataOutput) &&
+                _captureSession.CanAddOutput(_videoDataOutput))
+            {
+                _captureSession?.BeginConfiguration();
+                _captureSession?.AddOutput(_videoDataOutput);
+                _captureSession?.CommitConfiguration();
             }
+            
+            _videoDataOutput?.SetSampleBufferDelegate(null, null);
+            _videoDataOutput?.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
+
+            UpdateSymbologies();
+            UpdateTorch();
+            UpdateZoomFactor();
         });
     }
 
@@ -111,7 +108,7 @@ internal class CameraManager : IDisposable
             DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
 
         if (_captureSession?.Running ?? false)
-            _dispatchQueue.DispatchBarrierAsync(() => _captureSession?.StopRunning());
+            _dispatchQueue?.DispatchBarrierSync(() => _captureSession?.StopRunning());
     }
 
     internal void UpdateAimMode()
@@ -130,7 +127,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateCamera()
     {
-        _dispatchQueue.DispatchBarrierAsync(() =>
+        _dispatchQueue?.DispatchBarrierAsync(() =>
         {
             AVCaptureDevice? newDevice = null;
             if (_cameraView?.CameraFacing == CameraFacing.Front)
@@ -149,34 +146,28 @@ internal class CameraManager : IDisposable
             if (newDevice is null || _captureDevice == newDevice)
                 return;
 
-            if (_captureSession is not null)
+            _captureSession?.BeginConfiguration();
+
+            if (_captureSession is not null && _captureInput is not null && _captureSession.Inputs.Contains(_captureInput))
+                _captureSession.RemoveInput(_captureInput);
+
+            _captureInput?.Dispose();
+            _captureDevice?.Dispose();
+
+            _captureDevice = newDevice;
+
+            if (_captureDevice is not null)
             {
-                _captureSession.BeginConfiguration();
-
-                if (_captureInput is not null)
-                {
-                    if (_captureSession.Inputs.Contains(_captureInput))
-                        _captureSession.RemoveInput(_captureInput);
-
-                    _captureInput.Dispose();
-                }
+                _captureInput = AVCaptureDeviceInput.FromDevice(_captureDevice);
                 
-                _captureDevice?.Dispose();
-                _captureDevice = newDevice;
-
-                if (_captureDevice is not null)
-                {
-                    _captureInput = AVCaptureDeviceInput.FromDevice(_captureDevice);
-                    
-                    if (_captureInput is not null && _captureSession.CanAddInput(_captureInput))
-                        _captureSession.AddInput(_captureInput);
-                }
-                _captureSession.CommitConfiguration();
-
-                UpdateZoomFactor();
-                ResetFocus();
-                UpdateResolution();
+                if (_captureInput is not null && _captureSession is not null && _captureSession.CanAddInput(_captureInput))
+                    _captureSession.AddInput(_captureInput);
             }
+            _captureSession?.CommitConfiguration();
+
+            UpdateZoomFactor();
+            ResetFocus();
+            UpdateResolution();
         });
     }
     
@@ -190,14 +181,12 @@ internal class CameraManager : IDisposable
 
     internal void UpdateResolution()
     {
-        _dispatchQueue.DispatchBarrierAsync(() => 
+        _dispatchQueue?.DispatchBarrierAsync(() => 
         {
+            _captureSession?.BeginConfiguration();
             if (_captureSession is not null)
-            {
-                _captureSession.BeginConfiguration();
                 _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
-                _captureSession.CommitConfiguration();
-            }
+            _captureSession?.CommitConfiguration();
         });
     }
 
@@ -312,8 +301,7 @@ internal class CameraManager : IDisposable
     {
         if (disposing)
         {
-            if (_captureDevice is not null && _captureDevice.TorchActive)
-                DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
+            Stop();
 
             if (_subjectAreaChangedNotificaion is not null)
                 NSNotificationCenter.DefaultCenter.RemoveObserver(_subjectAreaChangedNotificaion);

@@ -11,5 +11,10 @@ public partial class MainPage : ContentPage
 	{
 		await Shell.Current.GoToAsync(nameof(ScanPage));
 	}
+
+	// private async void OpenScanPageClicked(object sender, EventArgs e)
+	// {
+	// 	await Navigation.PushAsync(new ScanPage());
+	// }
 }
 

@@ -116,37 +116,31 @@ internal class CameraManager : IDisposable
         _barcodeView = new BarcodeView(_context);
         _barcodeView.AddView(_relativeLayout);
 
-        DeviceDisplay.Current.MainDisplayInfoChanged += MainDisplayInfoChanged;
+        DeviceDisplay.Current.MainDisplayInfoChanged += MainDisplayInfoChangedAsync;
     }
 
-    internal async void Start()
+    internal void Start()
     { 
-        if (_cameraController is not null)
-        {
-            if (_previewView is not null)
-                _previewView.Controller = null;
+        if (_previewView is not null)
+            _previewView.Controller = null;
 
-            if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
-                _cameraController.Unbind();
-            
-            _cameraController.ClearImageAnalysisAnalyzer();
-            if (_barcodeAnalyzer is not null && _analyzerExecutor is not null)
-                _cameraController.SetImageAnalysisAnalyzer(_analyzerExecutor, _barcodeAnalyzer);
+        if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
+            _cameraController?.Unbind();
+        
+        _cameraController?.ClearImageAnalysisAnalyzer();
+        if (_barcodeAnalyzer is not null && _analyzerExecutor is not null)
+            _cameraController?.SetImageAnalysisAnalyzer(_analyzerExecutor, _barcodeAnalyzer);
 
-            UpdateResolution();
-            UpdateCamera();
-            UpdateSymbologies();
-            UpdateTorch();
+        UpdateResolution();
+        UpdateCamera();
+        UpdateSymbologies();
+        UpdateTorch();
 
-            if (_lifecycleOwner is not null)
-                _cameraController.BindToLifecycle(_lifecycleOwner);
-            
-            if (_previewView is not null)
-            {
-                await Task.Delay(100);
-                _previewView.Controller = _cameraController;
-            }
-        }   
+        if (_lifecycleOwner is not null)
+            _cameraController?.BindToLifecycle(_lifecycleOwner);
+        
+        if (_previewView is not null && _cameraController is not null)
+            _previewView.Controller = _cameraController;
     }
 
     internal void Stop()
@@ -188,14 +182,15 @@ internal class CameraManager : IDisposable
 
     internal void UpdateResolution()
     {
+        using var analysisStrategy = new ResolutionStrategy(Methods.TargetResolution(_cameraView?.CaptureQuality), ResolutionStrategy.FallbackRuleClosestHigherThenLower);
+        using var resolutionBuilder = new ResolutionSelector.Builder();   
+        resolutionBuilder.SetAllowedResolutionMode(ResolutionSelector.PreferHigherResolutionOverCaptureRate);
+        resolutionBuilder.SetResolutionStrategy(analysisStrategy);
+        resolutionBuilder.SetAspectRatioStrategy(AspectRatioStrategy.Ratio169FallbackAutoStrategy);
+        var selector = resolutionBuilder.Build();
+
         if (_cameraController is not null)
         {
-            using var analysisStrategy = new ResolutionStrategy(Methods.TargetResolution(_cameraView?.CaptureQuality), ResolutionStrategy.FallbackRuleClosestHigherThenLower);
-            using var resolutionBuilder = new ResolutionSelector.Builder();   
-            resolutionBuilder.SetAllowedResolutionMode(ResolutionSelector.PreferHigherResolutionOverCaptureRate);
-            resolutionBuilder.SetResolutionStrategy(analysisStrategy);
-            resolutionBuilder.SetAspectRatioStrategy(AspectRatioStrategy.Ratio169FallbackAutoStrategy);
-            var selector = resolutionBuilder.Build();
             _cameraController.ImageAnalysisResolutionSelector = selector;
             _cameraController.PreviewResolutionSelector = selector;
         }
@@ -244,13 +239,17 @@ internal class CameraManager : IDisposable
             return null;
     }
 
-    private async void MainDisplayInfoChanged(object? sender, DisplayInfoChangedEventArgs e)
+    private async void MainDisplayInfoChangedAsync(object? sender, DisplayInfoChangedEventArgs e)
     {
-        if (_previewView is not null && OpenedCameraState?.GetType() == CameraState.Type.Open)
+        if (OpenedCameraState?.GetType() == CameraState.Type.Open)
         {
-            _previewView.Controller = null;
+            if (_previewView is not null)
+                _previewView.Controller = null;
+
             await Task.Delay(100);
-            _previewView.Controller = _cameraController;
+
+            if (_previewView is not null)
+                _previewView.Controller = _cameraController;
         }
     }
     
@@ -264,7 +263,9 @@ internal class CameraManager : IDisposable
     {
         if (disposing)
         {
-            DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChanged;
+            Stop();
+
+            DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChangedAsync;
             
             if (_cameraStateObserver is not null)
             {
