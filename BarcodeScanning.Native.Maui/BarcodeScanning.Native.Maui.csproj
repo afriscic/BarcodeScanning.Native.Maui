@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<IsAotCompatible>true</IsAotCompatible>
 		<Nullable>enable</Nullable>
-		<Version>2.1.8</Version>
+		<Version>2.1.9</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -50,13 +50,13 @@
 	</ItemGroup>
 	
 	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android'">
-		<PackageReference Include="Xamarin.Google.MLKit.BarcodeScanning" Version="117.3.0.2" />
-		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.4.1.1" />
-		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.4.1.1" />
+		<PackageReference Include="Xamarin.Google.MLKit.BarcodeScanning" Version="117.3.0.3" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.4.2.1" />
+		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.4.2.1" />
 
-		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.9.3.2" />
-		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.4.5.2" />
-		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.5.2" />
+		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.10.1.1" />
+		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.5.0.1" />
+		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.6.1" />
 
 		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\libInvertBytes.so" />
 		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\libInvertBytes.so" />

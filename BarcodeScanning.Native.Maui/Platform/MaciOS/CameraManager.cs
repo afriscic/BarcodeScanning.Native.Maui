@@ -11,9 +11,11 @@ namespace BarcodeScanning;
 
 internal class CameraManager : IDisposable
 {
+    internal AVCaptureDeviceRotationCoordinator? RotationCoordinator { get => _rotationCoordinator; }
     internal AVCaptureVideoPreviewLayer PreviewLayer { get => _previewLayer; }
     internal BarcodeView BarcodeView { get => _barcodeView; }
     internal CameraView? CameraView { get => _cameraView; }
+    internal CAShapeLayer ShapeLayer{ get => _shapeLayer; }
 
     private readonly AVCaptureVideoDataOutput _videoDataOutput;
     private readonly AVCaptureVideoPreviewLayer _previewLayer;
@@ -29,6 +31,7 @@ internal class CameraManager : IDisposable
 
     private AVCaptureDevice? _captureDevice;
     private AVCaptureInput? _captureInput;
+    private AVCaptureDeviceRotationCoordinator? _rotationCoordinator;
 
     private const int aimRadius = 8;
 
@@ -67,7 +70,7 @@ internal class CameraManager : IDisposable
             LineWidth = 0
         };
         
-        _barcodeView = new BarcodeView(_previewLayer, _shapeLayer);
+        _barcodeView = new BarcodeView(this);
         _barcodeView.Layer.AddSublayer(_previewLayer);
         _barcodeView.AddGestureRecognizer(_uITapGestureRecognizer);
     }
@@ -151,6 +154,7 @@ internal class CameraManager : IDisposable
             if (_captureSession is not null && _captureInput is not null && _captureSession.Inputs.Contains(_captureInput))
                 _captureSession.RemoveInput(_captureInput);
 
+            _rotationCoordinator?.Dispose();
             _captureInput?.Dispose();
             _captureDevice?.Dispose();
 
@@ -159,9 +163,12 @@ internal class CameraManager : IDisposable
             if (_captureDevice is not null)
             {
                 _captureInput = AVCaptureDeviceInput.FromDevice(_captureDevice);
-                
+
                 if (_captureInput is not null && _captureSession is not null && _captureSession.CanAddInput(_captureInput))
                     _captureSession.AddInput(_captureInput);
+                
+                if (OperatingSystem.IsIOSVersionAtLeast(17))
+                    _rotationCoordinator = new AVCaptureDeviceRotationCoordinator(_captureDevice, _previewLayer);
             }
             _captureSession?.CommitConfiguration();
 
@@ -317,6 +324,7 @@ internal class CameraManager : IDisposable
             _previewLayer?.Dispose();
             _shapeLayer?.Dispose();
 
+            _rotationCoordinator?.Dispose();
             _captureSession?.Dispose();
             _videoDataOutput?.Dispose();
             _captureInput?.Dispose();

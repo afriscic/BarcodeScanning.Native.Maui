@@ -1,5 +1,4 @@
 ﻿using AVFoundation;
-using CoreAnimation;
 using CoreGraphics;
 using UIKit;
 
@@ -7,59 +6,47 @@ namespace BarcodeScanning;
 
 public class BarcodeView : UIView
 {
-    private readonly AVCaptureVideoPreviewLayer _previewLayer;
-    private readonly CAShapeLayer _shapeLayer;
+    private readonly CameraManager _cameraManager;
 
-    internal BarcodeView(AVCaptureVideoPreviewLayer previewLayer, CAShapeLayer shapeLayer) : base()
+    internal BarcodeView(CameraManager cameraManager) : base()
     {
-        _previewLayer = previewLayer;
-        _shapeLayer = shapeLayer;
+        _cameraManager = cameraManager;
     }
 
     public override void LayoutSubviews()
     {
         base.LayoutSubviews();
 
-        var layer = this.Layer;
-
-        if (layer is not null) 
+        if (this.Layer is not null)
         {
-            if (_shapeLayer is not null)
-                _shapeLayer.Position = new CGPoint(layer.Bounds.GetMidX(), layer.Bounds.GetMidY());
+            if (_cameraManager.ShapeLayer is not null)
+                _cameraManager.ShapeLayer.Position = new CGPoint(this.Layer.Bounds.GetMidX(), this.Layer.Bounds.GetMidY());
 
-            if (_previewLayer is not null)
+            if (_cameraManager.PreviewLayer is not null)
+                _cameraManager.PreviewLayer.Frame = this.Layer.Bounds;
+        }
+
+        var connection = _cameraManager.PreviewLayer?.Connection;
+        if (connection is null)
+            return;
+            
+        if (OperatingSystem.IsIOSVersionAtLeast(17))
+        {
+            var angle = _cameraManager.RotationCoordinator?.VideoRotationAngleForHorizonLevelPreview ?? 0;
+            if (connection.IsVideoRotationAngleSupported(angle))
+                connection.VideoRotationAngle = angle;
+        }
+        else
+        {
+            if (connection.SupportsVideoOrientation)
             {
-                _previewLayer.Frame = layer.Bounds;
-
-                var connection = _previewLayer.Connection;
-                if (connection is not null)
+                connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
                 {
-                    /*if (OperatingSystem.IsIOSVersionAtLeast(17))
-                    {
-                        var angle = this.Window?.WindowScene?.InterfaceOrientation switch
-                        {
-                            UIInterfaceOrientation.LandscapeLeft => 0,
-                            UIInterfaceOrientation.LandscapeRight => 180,
-                            UIInterfaceOrientation.PortraitUpsideDown => 270,
-                            _ => 90
-                        };
-                        if (connection.IsVideoRotationAngleSupported(angle))
-                            connection.VideoRotationAngle = angle;
-                    }
-                    else 
-                    {*/
-                        if (connection.SupportsVideoOrientation)
-                        {
-                            connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
-                            {
-                                UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
-                                UIInterfaceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeRight,
-                                UIInterfaceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
-                                _ => AVCaptureVideoOrientation.Portrait
-                            };
-                        }
-                    //}
-                }
+                    UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
+                    UIInterfaceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeRight,
+                    UIInterfaceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
+                    _ => AVCaptureVideoOrientation.Portrait
+                };
             }
         }
     }
