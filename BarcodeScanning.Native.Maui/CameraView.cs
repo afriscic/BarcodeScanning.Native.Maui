@@ -339,7 +339,7 @@ public partial class CameraView : View
         _poolingTimer.Elapsed += PoolingTimer_Elapsed;
     }
 
-    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults, Lock resultLock)
+    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults)
     {
         if (PoolingInterval > 0)
         {
@@ -352,13 +352,10 @@ public partial class CameraView : View
                     _poolingTimer.Start();
                 }
 
-                lock (resultLock)
+                foreach (var result in barCodeResults)
                 {
-                    foreach (var result in barCodeResults)
-                    {
-                        _pooledResults.Remove(result);
-                        _pooledResults.Add(result);
-                    }
+                    _pooledResults.Remove(result);
+                    _pooledResults.Add(result);
                 }
             }
         }
@@ -367,36 +364,32 @@ public partial class CameraView : View
             if (_poolingTimer.Enabled)
                 _poolingTimer.Stop();
 
-            TriggerOnDetectionFinished(barCodeResults, resultLock);
+            TriggerOnDetectionFinished(barCodeResults);
         }
     }
 
     private void PoolingTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        if (PoolingInterval > 0)
-            TriggerOnDetectionFinished(_pooledResults, _poolingLock);
+        lock (_poolingLock)
+        {
+            if (PoolingInterval > 0)
+                TriggerOnDetectionFinished(_pooledResults);
+        }
     }
 
-    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults, Lock resultLock)
+    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults)
     {
-        try
-        {
-            if (VibrationOnDetected && barcodeResults.Count > 0 && Vibration.Default.IsSupported)
-                Vibration.Default.Vibrate();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine(ex);
-        }
-
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            lock (resultLock)
-            {
-                OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barcodeResults });
-                if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) ?? false)
-                    OnDetectionFinishedCommand?.Execute(barcodeResults);
-            }
+            if (PauseScanning)
+                return;
+            
+            if (VibrationOnDetected && barcodeResults.Count > 0 && Vibration.Default.IsSupported)
+                Vibration.Default.Vibrate();
+
+            OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barcodeResults });
+            if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) ?? false)
+                OnDetectionFinishedCommand?.Execute(barcodeResults);
         });
     }
     
@@ -404,6 +397,11 @@ public partial class CameraView : View
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
+            CaptureNextFrame = false;
+
+            if (PauseScanning)
+                return;
+
             OnImageCaptured?.Invoke(this, new OnImageCapturedEventArg { Image = image });
             if (OnImageCapturedCommand?.CanExecute(image) ?? false)
                 OnImageCapturedCommand?.Execute(image);

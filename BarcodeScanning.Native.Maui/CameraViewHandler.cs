@@ -17,6 +17,7 @@ public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
         [nameof(CameraView.AimMode)] = (handler, virtualView) => handler._cameraManager?.UpdateAimMode(),
         [nameof(CameraView.TapToFocusEnabled)] = (handler, virtualView) => handler?._cameraManager?.UpdateTapToFocus(),
         [nameof(CameraView.RequestZoomFactor)] = (handler, virtualView) => handler?._cameraManager?.UpdateZoomFactor(),
+        [nameof(CameraView.VibrationOnDetected)] = (handler, virtualView) => handler?._cameraManager?.UpdateVibration()
     };
 
     public static readonly CommandMapper<CameraView, CameraViewHandler> CameraCommandMapper = new()

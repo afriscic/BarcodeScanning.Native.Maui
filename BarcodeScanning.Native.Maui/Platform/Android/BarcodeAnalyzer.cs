@@ -92,13 +92,12 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
                 _barcodeResults.Clear();
                 AddResultToSet(result);
                 AddResultToSet(invertedResult);
-            }
 
-            _cameraManager.CameraView.DetectionFinished(_barcodeResults, _resultsLock);
+                _cameraManager.CameraView.DetectionFinished(_barcodeResults);
+            }
 
             if (_cameraManager.CameraView.ForceFrameCapture || (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0))
             {
-                MainThread.BeginInvokeOnMainThread(() =>_cameraManager.CameraView.CaptureNextFrame = false);
                 var image = new PlatformImage(proxy.ToBitmap());
                 _cameraManager.CameraView.TriggerOnImageCaptured(image);
             }

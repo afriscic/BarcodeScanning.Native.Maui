@@ -293,6 +293,8 @@ internal partial class CameraManager : IDisposable
 
     internal void UpdateTapToFocus() { }
 
+    internal void UpdateVibration() { }
+
     private void ReportZoomFactors()
     {
         if (_cameraView is not null && (_mediaCapture?.VideoDeviceController?.ZoomControl?.Supported ?? false))

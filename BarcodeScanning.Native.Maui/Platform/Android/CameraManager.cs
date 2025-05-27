@@ -1,3 +1,4 @@
+using Android;
 using Android.Content;
 using Android.Graphics;
 using Android.Widget;
@@ -212,6 +213,13 @@ internal class CameraManager : IDisposable
         _cameraController?.EnableTorch(_cameraView?.TorchOn ?? false);
     }
 
+    internal void UpdateVibration()
+    {
+        if ((_cameraView?.VibrationOnDetected ?? false) &&
+            !Permissions.IsDeclaredInManifest(Manifest.Permission.Vibrate))
+            _cameraView.VibrationOnDetected = false;
+    }
+
     internal void UpdateZoomFactor()
     {
         if (_cameraView is not null && (_cameraController?.ZoomState?.IsInitialized ?? false))
@@ -225,7 +233,7 @@ internal class CameraManager : IDisposable
                 if (factor != _cameraView.CurrentZoomFactor)
                     _cameraController.SetZoomRatio(factor);
             }
-        }            
+        }
     }
 
     internal CoordinateTransform? GetCoordinateTransform(IImageProxy proxy)

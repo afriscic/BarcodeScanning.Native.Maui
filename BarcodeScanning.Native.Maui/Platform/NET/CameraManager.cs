@@ -12,6 +12,7 @@ internal class CameraManager : IDisposable
     internal void UpdateResolution() => throw new NotImplementedException();
     internal void UpdateTapToFocus() => throw new NotImplementedException();
     internal void UpdateTorch() => throw new NotImplementedException();
+    internal void UpdateVibration() => throw new NotImplementedException();
     internal void UpdateZoomFactor() => throw new NotImplementedException();
 
     public void Dispose() => throw new NotImplementedException();

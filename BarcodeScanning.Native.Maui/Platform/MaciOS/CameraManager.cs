@@ -11,7 +11,6 @@ namespace BarcodeScanning;
 
 internal class CameraManager : IDisposable
 {
-    internal AVCaptureDeviceRotationCoordinator? RotationCoordinator { get => _rotationCoordinator; }
     internal AVCaptureVideoPreviewLayer PreviewLayer { get => _previewLayer; }
     internal BarcodeView BarcodeView { get => _barcodeView; }
     internal CameraView? CameraView { get => _cameraView; }
@@ -31,7 +30,6 @@ internal class CameraManager : IDisposable
 
     private AVCaptureDevice? _captureDevice;
     private AVCaptureInput? _captureInput;
-    private AVCaptureDeviceRotationCoordinator? _rotationCoordinator;
 
     private const int aimRadius = 8;
 
@@ -154,7 +152,6 @@ internal class CameraManager : IDisposable
             if (_captureSession is not null && _captureInput is not null && _captureSession.Inputs.Contains(_captureInput))
                 _captureSession.RemoveInput(_captureInput);
 
-            _rotationCoordinator?.Dispose();
             _captureInput?.Dispose();
             _captureDevice?.Dispose();
 
@@ -166,9 +163,6 @@ internal class CameraManager : IDisposable
 
                 if (_captureInput is not null && _captureSession is not null && _captureSession.CanAddInput(_captureInput))
                     _captureSession.AddInput(_captureInput);
-                
-                if (OperatingSystem.IsIOSVersionAtLeast(17))
-                    _rotationCoordinator = new AVCaptureDeviceRotationCoordinator(_captureDevice, _previewLayer);
             }
             _captureSession?.CommitConfiguration();
 
@@ -222,6 +216,8 @@ internal class CameraManager : IDisposable
                 });
         }
     }
+    
+    internal void UpdateVibration() {}
 
     internal void UpdateZoomFactor()
     {
@@ -237,8 +233,8 @@ internal class CameraManager : IDisposable
             {
                 factor = Math.Max(factor, _cameraView.MinZoomFactor);
                 factor = Math.Min(factor, _cameraView.MaxZoomFactor);
-                
-                DeviceLock(() => 
+
+                DeviceLock(() =>
                 {
                     _captureDevice.VideoZoomFactor = factor;
                     _cameraView.CurrentZoomFactor = factor;
@@ -324,7 +320,6 @@ internal class CameraManager : IDisposable
             _previewLayer?.Dispose();
             _shapeLayer?.Dispose();
 
-            _rotationCoordinator?.Dispose();
             _captureSession?.Dispose();
             _videoDataOutput?.Dispose();
             _captureInput?.Dispose();

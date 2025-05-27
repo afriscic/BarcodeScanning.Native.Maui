@@ -59,40 +59,41 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             lock (_resultsLock)
             {
                 _barcodeResults.Clear();
-                foreach (var barcode in _result)
+
+                if (_cameraManager.CameraView.AimMode)
                 {
-                    if (string.IsNullOrEmpty(barcode.PayloadStringValue))
-                        continue;
-
-                    var barcodeResult = barcode.AsBarcodeResult(_cameraManager.PreviewLayer);
-
-                    if (_cameraManager.CameraView.AimMode)
-                    {
-                        _previewCenter.X = _cameraManager.PreviewLayer.Bounds.GetMidX();
-                        _previewCenter.Y = _cameraManager.PreviewLayer.Bounds.GetMidY();
-
-                        if (!barcodeResult.PreviewBoundingBox.Contains(_previewCenter))
-                            continue;
-                    }
-
-                    if (_cameraManager.CameraView.ViewfinderMode)
-                    {
-                        _previewRect.Width = _cameraManager.PreviewLayer.Bounds.Width;
-                        _previewRect.Height = _cameraManager.PreviewLayer.Bounds.Height;
-
-                        if (!_previewRect.Contains(barcodeResult.PreviewBoundingBox))
-                            continue;
-                    }
-
-                    _barcodeResults.Add(barcodeResult);
+                    _previewCenter.X = _cameraManager.PreviewLayer.Bounds.GetMidX();
+                    _previewCenter.Y = _cameraManager.PreviewLayer.Bounds.GetMidY();
                 }
-            }
+                if (_cameraManager.CameraView.ViewfinderMode)
+                {
+                    _previewRect.Width = _cameraManager.PreviewLayer.Bounds.Width;
+                    _previewRect.Height = _cameraManager.PreviewLayer.Bounds.Height;
+                }
+                
+                foreach (var barcode in _result)
+                    {
+                        if (string.IsNullOrEmpty(barcode.PayloadStringValue))
+                            continue;
 
-            _cameraManager.CameraView.DetectionFinished(_barcodeResults, _resultsLock);
+                        var barcodeResult = barcode.AsBarcodeResult(_cameraManager.PreviewLayer);
+
+                        if (_cameraManager.CameraView.AimMode &&
+                            !barcodeResult.PreviewBoundingBox.Contains(_previewCenter))
+                            continue;
+
+                        if (_cameraManager.CameraView.ViewfinderMode &&
+                            !_previewRect.Contains(barcodeResult.PreviewBoundingBox))
+                            continue;
+
+                        _barcodeResults.Add(barcodeResult);
+                    }
+
+                _cameraManager.CameraView.DetectionFinished(_barcodeResults);
+            }
 
             if (_cameraManager.CameraView.ForceFrameCapture || (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0))
             {
-                MainThread.BeginInvokeOnMainThread(() =>_cameraManager.CameraView.CaptureNextFrame = false);
                 using var imageBuffer = sampleBuffer.GetImageBuffer();
                 if (imageBuffer is not null)
                 {
