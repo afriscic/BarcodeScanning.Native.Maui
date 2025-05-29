@@ -30,7 +30,7 @@ public class BarcodeView : UIView
         if (connection is null)
             return;
             
-        if (OperatingSystem.IsIOSVersionAtLeast(17))
+        /*if (OperatingSystem.IsIOSVersionAtLeast(17))
         {
             var angle = this.Window?.WindowScene?.InterfaceOrientation switch
             {
@@ -43,7 +43,7 @@ public class BarcodeView : UIView
                 connection.VideoRotationAngle = angle;
         }
         else
-        {
+        {*/
             if (connection.SupportsVideoOrientation)
             {
                 connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
@@ -54,6 +54,6 @@ public class BarcodeView : UIView
                     _ => AVCaptureVideoOrientation.Portrait
                 };
             }
-        }
+        //}
     }
 }
