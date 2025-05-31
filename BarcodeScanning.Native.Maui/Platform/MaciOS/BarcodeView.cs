@@ -34,10 +34,10 @@ public class BarcodeView : UIView
         {
             var angle = this.Window?.WindowScene?.InterfaceOrientation switch
             {
-                UIInterfaceOrientation.LandscapeLeft => 270,
-                UIInterfaceOrientation.PortraitUpsideDown => 180,
-                UIInterfaceOrientation.LandscapeRight => 90,
-                _ => 0
+                UIInterfaceOrientation.LandscapeLeft => 180,
+                UIInterfaceOrientation.PortraitUpsideDown => 270,
+                UIInterfaceOrientation.LandscapeRight => 0,
+                _ => 90
             };
             if (connection.IsVideoRotationAngleSupported(angle))
                 connection.VideoRotationAngle = angle;
