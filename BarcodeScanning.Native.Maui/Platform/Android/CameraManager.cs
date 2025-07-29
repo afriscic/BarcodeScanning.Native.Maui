@@ -91,7 +91,7 @@ internal class CameraManager : IDisposable
         _previewView.SetBackgroundColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
         _previewView.SetImplementationMode(PreviewView.ImplementationMode.Compatible);
         _previewView.SetScaleType(PreviewView.ScaleType.FillCenter);
-        
+
         using var layoutParams = new RelativeLayout.LayoutParams(LayoutParams.WrapContent, LayoutParams.WrapContent);
         layoutParams.AddRule(LayoutRules.CenterInParent);
         using var circleBitmap = Bitmap.CreateBitmap(2 * aimRadius, 2 * aimRadius, Bitmap.Config.Argb8888);
@@ -136,6 +136,7 @@ internal class CameraManager : IDisposable
         UpdateCamera();
         UpdateSymbologies();
         UpdateTorch();
+        UpdatePreviewScale();
 
         if (_lifecycleOwner is not null)
             _cameraController?.BindToLifecycle(_lifecycleOwner);
@@ -233,6 +234,15 @@ internal class CameraManager : IDisposable
                 if (factor != _cameraView.CurrentZoomFactor)
                     _cameraController.SetZoomRatio(factor);
             }
+        }
+    }
+
+    internal void UpdatePreviewScale()
+    {
+        if (_cameraView is not null && _previewView is not null)
+        {
+            _previewView.ScaleY = _cameraView.CameraPreviewScaleY;
+            _previewView.ScaleX = _cameraView.CameraPreviewScaleX;
         }
     }
 
