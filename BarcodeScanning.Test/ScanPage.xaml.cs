@@ -84,6 +84,12 @@ namespace BarcodeScanning.Test
                 Barcode.PauseScanning = true;
         }
 
+        private void RotateButton_Clicked(object sender, EventArgs e)
+        {
+            Barcode.CameraPreviewScaleY = Barcode.CameraPreviewScaleY * -1;
+            Barcode.CameraPreviewScaleX = Barcode.CameraPreviewScaleX * -1;
+        }
+
         private void Quality_SelectedIndexChanged(object sender, EventArgs e)
         {
             var picker = (Picker)sender;
