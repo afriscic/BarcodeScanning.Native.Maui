@@ -58,6 +58,9 @@
 		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.5.0.1" />
 		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.6.1" />
 
+		<!-- Fix for duplicate androidx.tracing.TraceKt class -->
+		<PackageReference Include="Xamarin.AndroidX.Tracing.Tracing" Version="1.3.0.1" />
+
 		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\libInvertBytes.so" />
 		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\libInvertBytes.so" />
 	</ItemGroup>
