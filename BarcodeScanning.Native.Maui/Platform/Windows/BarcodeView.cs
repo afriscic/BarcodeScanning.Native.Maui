@@ -2,6 +2,7 @@
 
 namespace BarcodeScanning;
 
-public class BarcodeView : Grid
+public partial class BarcodeView : Grid
 {
+
 }

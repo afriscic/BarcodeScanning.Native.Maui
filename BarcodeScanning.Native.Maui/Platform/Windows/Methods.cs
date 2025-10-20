@@ -1,7 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Windows.Graphics.Imaging;
-using ZXingCpp;
 
 namespace BarcodeScanning;
 
@@ -56,7 +55,7 @@ public static partial class Methods
         return formats;
     }
 
-    private static BarcodeFormats ConvertFromZxingFormats(ZXingCpp.BarcodeFormats format)
+    internal static BarcodeFormats ConvertFromZxingFormats(ZXingCpp.BarcodeFormats format)
     {
         return format switch
         {
