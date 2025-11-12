@@ -85,6 +85,8 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 7. As a best practice set the `CameraEnabled` property to `false` in `OnDisappearing()` method override in your ContentPage.
 8. From .NET MAUI 9 (version 2.0.0) manually calling `DisconnectHandler()` is no loger required, but optional. More info here: [What's new in .NET MAUI for .NET 9](https://learn.microsoft.com/en-us/dotnet/maui/whats-new/dotnet-9?view=net-maui-9.0#handler-disconnection)
 9. From version 1.5.0 set the `CaptureNextFrame` property to `true` to capture next frame from the camera feed as a `PlatformImage`. Listen to `OnImageCaptured` event or bind to `OnImageCapturedCommand` property to get the caputured image. **Image is captured from the original camera feed and can be different from the on-screen preview.** After the image is captured `CaptureNextFrame` property is automaticly set to `false` to prevent memory leaks. Example can be found in `ScanTab.xaml.cs`.
+10. The image source is not limited to the built-in UI camera component. It can also be provided as a `byte[]`, `FileResult`, `string`, or `Stream` using the methods available in the [`Methods`](https://github.com/afriscic/BarcodeScanning.Native.Maui/blob/master/BarcodeScanning.Native.Maui/Platform/NET/Methods.cs) class.
+
 
 ## Supported barcode symbologies
 #### Android
