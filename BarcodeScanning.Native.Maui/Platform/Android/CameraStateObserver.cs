@@ -5,10 +5,10 @@ namespace BarcodeScanning;
 
 internal class CameraStateObserver : Java.Lang.Object, IObserver
 {
-    private readonly CameraManager _cameraManager;
-    private readonly CameraView _cameraView;
+    private readonly CameraManager? _cameraManager;
+    private readonly CameraView? _cameraView;
 
-    internal CameraStateObserver(CameraManager cameraManager, CameraView cameraView)
+    internal CameraStateObserver(CameraManager? cameraManager, CameraView? cameraView)
     {
         _cameraManager = cameraManager;
         _cameraView = cameraView;

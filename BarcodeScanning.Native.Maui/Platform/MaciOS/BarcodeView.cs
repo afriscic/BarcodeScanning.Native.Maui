@@ -6,9 +6,9 @@ namespace BarcodeScanning;
 
 public class BarcodeView : UIView
 {
-    private readonly CameraManager _cameraManager;
+    private readonly CameraManager? _cameraManager;
 
-    internal BarcodeView(CameraManager cameraManager) : base()
+    internal BarcodeView(CameraManager? cameraManager) : base()
     {
         _cameraManager = cameraManager;
     }
@@ -29,21 +29,15 @@ public class BarcodeView : UIView
         var connection = _cameraManager?.PreviewLayer?.Connection;
         if (connection is null)
             return;
-            
-        /*if (OperatingSystem.IsIOSVersionAtLeast(17))
+
+        if (OperatingSystem.IsIOSVersionAtLeast(17))
         {
-            var angle = this.Window?.WindowScene?.InterfaceOrientation switch
-            {
-                UIInterfaceOrientation.LandscapeLeft => 270,
-                UIInterfaceOrientation.PortraitUpsideDown => 180,
-                UIInterfaceOrientation.LandscapeRight => 90,
-                _ => 0
-            };
+            var angle = _cameraManager?.RotationCoordinator?.VideoRotationAngleForHorizonLevelPreview ?? 0;
             if (connection.IsVideoRotationAngleSupported(angle))
                 connection.VideoRotationAngle = angle;
         }
         else
-        {*/
+        {
             if (connection.SupportsVideoOrientation)
             {
                 connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
@@ -54,6 +48,6 @@ public class BarcodeView : UIView
                     _ => AVCaptureVideoOrientation.Portrait
                 };
             }
-        //}
+        }
     }
 }

@@ -21,25 +21,23 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     public Size DefaultTargetResolution => Methods.TargetResolution(null);
     public int TargetCoordinateSystem => ImageAnalysis.CoordinateSystemViewReferenced;
 
+    private readonly CameraManager? _cameraManager;
     private readonly HashSet<BarcodeResult> _barcodeResults;
-    private readonly CameraManager _cameraManager;
     private readonly Lock _resultsLock;
 
     private IBarcodeScanner? _barcodeScanner;
     private CoordinateTransform? _coordinateTransform;
 
     private bool _updateCoordinateTransform = false;
-    private Point _previewViewCenter = new();
-    private Rect _previewViewRect = new();
+    private Point _previewViewCenter = Point.Zero;
+    private Rect _previewViewRect = Rect.Zero;
 
-    internal BarcodeAnalyzer(CameraManager cameraManager)
+    internal BarcodeAnalyzer(CameraManager? cameraManager)
     {
-        _barcodeResults = [];
         _cameraManager = cameraManager;
-        _resultsLock = new();
 
-        _previewViewRect.X = 0;
-        _previewViewRect.Y = 0;
+        _barcodeResults = [];
+        _resultsLock = new();
     }
 
     internal void UpdateSymbologies()
@@ -50,12 +48,13 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             .Build());
     }
 
-    public void Analyze(IImageProxy proxy)
+    public void Analyze(IImageProxy? proxy)
     {
         try
         {
             ArgumentNullException.ThrowIfNull(proxy?.Image);
             ArgumentNullException.ThrowIfNull(_cameraManager?.CameraView);
+            ArgumentNullException.ThrowIfNull(_cameraManager?.PreviewView);
             ArgumentNullException.ThrowIfNull(_barcodeScanner);
 
             if (_cameraManager.CameraView.PauseScanning)
