@@ -1,6 +1,7 @@
 using Android;
 using Android.Content;
 using Android.Graphics;
+using Android.Views;
 using Android.Widget;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.Core.ResolutionSelector;
@@ -114,7 +115,9 @@ internal class CameraManager : IDisposable
     }
 
     internal void Start()
-    { 
+    {
+        ClearPreview();
+
         _previewView?.Controller = null;
 
         if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
@@ -238,6 +241,16 @@ internal class CameraManager : IDisposable
         }
     }
     
+    public void ClearPreview() {
+        if (_previewView?.GetChildAt(0) is TextureView textureView) {
+            var canvas = textureView.LockCanvas();
+            if (canvas != null) {
+                canvas.DrawColor(Android.Graphics.Color.Black);
+                textureView.UnlockCanvasAndPost(canvas);
+            }
+        }
+    }
+
     public void Dispose()
     {
         Dispose(true);
