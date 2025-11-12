@@ -93,8 +93,7 @@ internal class CameraManager : IDisposable
         canvas.DrawCircle(aimRadius, aimRadius, aimRadius, new Paint
         {
             AntiAlias = true,
-            Color = Color.Red,
-            Alpha = 150
+            Color = _cameraView?.AimIndicatorColor.ToPlatform() ?? Color.Transparent
         }); 
         _imageView = new ImageView(_context)
         {
@@ -116,7 +115,14 @@ internal class CameraManager : IDisposable
 
     internal void Start()
     {
-        ClearPreview();
+        if (_previewView?.GetChildAt(0) is TextureView textureView) {
+            var canvas = textureView.LockCanvas();
+            if (canvas is not null) 
+            {
+                canvas.DrawColor(Color.Black);
+                textureView.UnlockCanvasAndPost(canvas);
+            }
+        }
 
         _previewView?.Controller = null;
 
@@ -133,6 +139,8 @@ internal class CameraManager : IDisposable
 
         _cameraController?.BindToLifecycle(_lifecycleOwner);
         _previewView?.Controller = _cameraController;
+
+        UpdateZoomFactor();
     }
 
     internal void Stop()
@@ -206,7 +214,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateZoomFactor()
     {
-        if (_cameraView is not null && (_cameraController?.ZoomState?.IsInitialized ?? false))
+        if (_cameraView is not null)
         {
             var factor = _cameraView.RequestZoomFactor;
             if (factor > 0)
@@ -215,7 +223,7 @@ internal class CameraManager : IDisposable
                 factor = Math.Min(factor, _cameraView.MaxZoomFactor);
 
                 if (factor != _cameraView.CurrentZoomFactor)
-                    _cameraController.SetZoomRatio(factor);
+                    _cameraController?.SetZoomRatio(factor);
             }
         }
     }
@@ -238,16 +246,6 @@ internal class CameraManager : IDisposable
             _previewView?.Controller = null;
             await Task.Delay(100);
             _previewView?.Controller = _cameraController;
-        }
-    }
-    
-    public void ClearPreview() {
-        if (_previewView?.GetChildAt(0) is TextureView textureView) {
-            var canvas = textureView.LockCanvas();
-            if (canvas != null) {
-                canvas.DrawColor(Android.Graphics.Color.Black);
-                textureView.UnlockCanvasAndPost(canvas);
-            }
         }
     }
 

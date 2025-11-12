@@ -16,21 +16,16 @@ internal class CameraStateObserver : Java.Lang.Object, IObserver
 
     public void OnChanged(Java.Lang.Object? value)
     {
-        if (value is not null && _cameraView is not null && _cameraManager is not null)
+        if (value is IZoomState zoomState)
         {
-            if (value is IZoomState zoomState)
-            {
-                _cameraView.CurrentZoomFactor = zoomState.ZoomRatio;
-                _cameraView.MinZoomFactor = zoomState.MinZoomRatio;
-                _cameraView.MaxZoomFactor = zoomState.MaxZoomRatio;
+            _cameraView?.CurrentZoomFactor = zoomState.ZoomRatio;
+            _cameraView?.MinZoomFactor = zoomState.MinZoomRatio;
+            _cameraView?.MaxZoomFactor = zoomState.MaxZoomRatio;
+        }
 
-                _cameraManager.UpdateZoomFactor();
-            }
-
-            if (value is CameraState cameraState)
-            {
-                _cameraManager.OpenedCameraState = cameraState;
-            }
+        if (value is CameraState cameraState)
+        {
+            _cameraManager?.OpenedCameraState = cameraState;
         }
     }
 }

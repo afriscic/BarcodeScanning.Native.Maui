@@ -64,7 +64,7 @@ internal class CameraManager : IDisposable
         _shapeLayer = new CAShapeLayer()
         {
             Path = UIBezierPath.FromOval(new CGRect(-aimRadius, -aimRadius, 2 * aimRadius, 2 * aimRadius)).CGPath,
-            FillColor = UIColor.Red.ColorWithAlpha(0.60f).CGColor,
+            FillColor = _cameraView?.AimIndicatorColor.ToPlatform().CGColor,
             StrokeColor = UIColor.Clear.CGColor,
             LineWidth = 0
         };

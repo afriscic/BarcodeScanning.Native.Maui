@@ -265,6 +265,22 @@ public partial class CameraView : View
         set => SetValue(RequestZoomFactorProperty, value);
     }
 
+    public static readonly BindableProperty AimIndicatorColorProperty = BindableProperty.Create(nameof(AimIndicatorColor)
+        , typeof(Color)
+        , typeof(CameraView)
+        , new Color(255, 0, 0, 150)
+        , BindingMode.OneTime);
+    /// <summary>
+    /// Gets or sets the color of the aim indicator in the camera view.
+    /// Default value is <c>Color(255, 0, 0, 150)</c> (semi-transparent red).
+    /// The property uses <see cref="BindingMode.OneTime"/> by default.
+    /// </summary>
+    public Color AimIndicatorColor
+    {
+        get => (Color)GetValue(AimIndicatorColorProperty);
+        private set => SetValue(AimIndicatorColorProperty, value);
+    }
+
     public static readonly BindableProperty CurrentZoomFactorProperty = BindableProperty.Create(nameof(CurrentZoomFactor)
         , typeof(float)
         , typeof(CameraView)
