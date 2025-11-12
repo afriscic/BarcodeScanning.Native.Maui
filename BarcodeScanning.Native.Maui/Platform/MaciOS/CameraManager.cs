@@ -11,25 +11,26 @@ namespace BarcodeScanning;
 
 internal class CameraManager : IDisposable
 {
-    internal AVCaptureVideoPreviewLayer PreviewLayer { get => _previewLayer; }
-    internal BarcodeView BarcodeView { get => _barcodeView; }
+    internal AVCaptureVideoPreviewLayer? PreviewLayer { get => _previewLayer; }
+    internal AVCaptureDeviceRotationCoordinator? RotationCoordinator { get => _rotationCoordinator; }
+    internal BarcodeView? BarcodeView { get => _barcodeView; }
     internal CameraView? CameraView { get => _cameraView; }
-    internal CAShapeLayer ShapeLayer{ get => _shapeLayer; }
+    internal CAShapeLayer? ShapeLayer{ get => _shapeLayer; }
 
-    private readonly AVCaptureVideoDataOutput _videoDataOutput;
-    private readonly AVCaptureVideoPreviewLayer _previewLayer;
-    private readonly AVCaptureSession _captureSession;
-    private readonly BarcodeAnalyzer _barcodeAnalyzer;
-    private readonly BarcodeView _barcodeView;
-    private readonly CAShapeLayer _shapeLayer;
-    private readonly DispatchQueue _dispatchQueue;
-    private readonly NSObject _subjectAreaChangedNotificaion;
-    private readonly UITapGestureRecognizer _uITapGestureRecognizer;
-
+    private readonly AVCaptureVideoDataOutput? _videoDataOutput;
+    private readonly AVCaptureVideoPreviewLayer? _previewLayer;
+    private readonly AVCaptureSession? _captureSession;
+    private readonly BarcodeAnalyzer? _barcodeAnalyzer;
+    private readonly BarcodeView? _barcodeView;
     private readonly CameraView? _cameraView;
+    private readonly CAShapeLayer? _shapeLayer;
+    private readonly DispatchQueue? _dispatchQueue;
+    private readonly NSObject? _subjectAreaChangedNotificaion;
+    private readonly UITapGestureRecognizer? _uITapGestureRecognizer;
 
     private AVCaptureDevice? _captureDevice;
     private AVCaptureInput? _captureInput;
+    private AVCaptureDeviceRotationCoordinator? _rotationCoordinator;
 
     private const int aimRadius = 8;
 
@@ -47,7 +48,7 @@ internal class CameraManager : IDisposable
         {
             AlwaysDiscardsLateVideoFrames = true
         };
-
+        
         _uITapGestureRecognizer = new UITapGestureRecognizer(FocusOnTap);
         _subjectAreaChangedNotificaion = NSNotificationCenter.DefaultCenter.AddObserver(AVCaptureDevice.SubjectAreaDidChangeNotification, (n) => 
         {
@@ -114,7 +115,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateAimMode()
     {
-        if (_cameraView?.AimMode ?? false)
+        if ((_cameraView?.AimMode ?? false) && _shapeLayer is not null)
             _barcodeView?.Layer?.AddSublayer(_shapeLayer);
         else
             _shapeLayer?.RemoveFromSuperLayer();
@@ -122,8 +123,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateBackgroundColor()
     {
-        if (_previewLayer is not null)
-            _previewLayer.BackgroundColor = _cameraView?.BackgroundColor?.ToPlatform().CGColor;
+        _previewLayer?.BackgroundColor = _cameraView?.BackgroundColor?.ToPlatform().CGColor;
     }
 
     internal void UpdateCamera()
@@ -154,6 +154,7 @@ internal class CameraManager : IDisposable
 
             _captureInput?.Dispose();
             _captureDevice?.Dispose();
+            _rotationCoordinator?.Dispose();
 
             _captureDevice = newDevice;
 
@@ -163,6 +164,9 @@ internal class CameraManager : IDisposable
 
                 if (_captureInput is not null && _captureSession is not null && _captureSession.CanAddInput(_captureInput))
                     _captureSession.AddInput(_captureInput);
+                
+                if (OperatingSystem.IsIOSVersionAtLeast(17))
+                    _rotationCoordinator = new AVCaptureDeviceRotationCoordinator(_captureDevice, _previewLayer);
             }
             _captureSession?.CommitConfiguration();
 
@@ -185,8 +189,7 @@ internal class CameraManager : IDisposable
         _dispatchQueue?.DispatchBarrierAsync(() => 
         {
             _captureSession?.BeginConfiguration();
-            if (_captureSession is not null)
-                _captureSession.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
+            _captureSession?.SessionPreset = Methods.GetBestSupportedPreset(_captureSession, _cameraView?.CaptureQuality ?? CaptureQuality.Medium);
             _captureSession?.CommitConfiguration();
         });
     }
@@ -267,7 +270,11 @@ internal class CameraManager : IDisposable
 
     private void FocusOnTap()
     {
-        if ((_cameraView?.TapToFocusEnabled ?? false) && _captureDevice is not null && _captureDevice.FocusPointOfInterestSupported)
+        if ((_cameraView?.TapToFocusEnabled ?? false) &&
+            _captureDevice is not null &&
+            _captureDevice.FocusPointOfInterestSupported &&
+            _previewLayer is not null &&
+            _uITapGestureRecognizer is not null)
         {
             DeviceLock(() =>
             {
@@ -326,6 +333,7 @@ internal class CameraManager : IDisposable
 
             _barcodeAnalyzer?.Dispose();
             _captureDevice?.Dispose();
+            _rotationCoordinator?.Dispose();
             _uITapGestureRecognizer?.Dispose();
             _subjectAreaChangedNotificaion?.Dispose();
             _dispatchQueue?.Dispose();

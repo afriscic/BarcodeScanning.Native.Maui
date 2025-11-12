@@ -11,20 +11,21 @@ namespace BarcodeScanning;
 
 internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 {
+    private readonly CameraManager? _cameraManager;
     private readonly HashSet<BarcodeResult> _barcodeResults;
-    private readonly CameraManager _cameraManager;
     private readonly Lock _resultsLock;
     private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
 
-    private Point _previewCenter = new();
-    private Rect _previewRect = new();
+    private Point _previewCenter = Point.Zero;
+    private Rect _previewRect = Rect.Zero;
     private VNBarcodeObservation[] _result = [];
 
-    internal BarcodeAnalyzer(CameraManager cameraManager)
+    internal BarcodeAnalyzer(CameraManager? cameraManager)
     {
-        _barcodeResults = [];
         _cameraManager = cameraManager;
+
+        _barcodeResults = [];
         _resultsLock = new();
         _detectBarcodesRequest = new VNDetectBarcodesRequest((request, error) => 
         {
@@ -34,9 +35,6 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                 _result = [];
         });
         _sequenceRequestHandler = new VNSequenceRequestHandler();
-
-        _previewRect.X = 0;
-        _previewRect.Y = 0;
     }
 
     internal void UpdateSymbologies()
@@ -49,6 +47,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         try
         {
             ArgumentNullException.ThrowIfNull(_cameraManager?.CameraView);
+            ArgumentNullException.ThrowIfNull(_cameraManager?.PreviewLayer);
             ArgumentNullException.ThrowIfNull(sampleBuffer);
 
             if (_cameraManager.CameraView.PauseScanning)
