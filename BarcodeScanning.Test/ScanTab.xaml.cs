@@ -102,7 +102,7 @@ namespace BarcodeScanning.Test
             {
                 if (image is not null)
                 {
-                    canvas.DrawImage(image, 10, 10, 200, 200);
+                    canvas.DrawImage(image, 10, 10, image.Width / 8, image.Height / 8);
                 }
 
                 if (barcodeResults is not null && barcodeResults.Count > 0)

@@ -13,19 +13,8 @@ public class BarcodeView : UIView
         _cameraManager = cameraManager;
     }
 
-    public override void LayoutSubviews()
+    internal void UpdateOrientation()
     {
-        base.LayoutSubviews();
-
-        if (this.Layer is not null)
-        {
-            if (_cameraManager?.ShapeLayer is not null)
-                _cameraManager.ShapeLayer.Position = new CGPoint(this.Layer.Bounds.GetMidX(), this.Layer.Bounds.GetMidY());
-
-            if (_cameraManager?.PreviewLayer is not null)
-                _cameraManager.PreviewLayer.Frame = this.Layer.Bounds;
-        }
-
         var connection = _cameraManager?.PreviewLayer?.Connection;
         if (connection is null)
             return;
@@ -49,5 +38,21 @@ public class BarcodeView : UIView
                 };
             }
         }
+    }
+
+    public override void LayoutSubviews()
+    {
+        base.LayoutSubviews();
+
+        if (this.Layer is not null)
+        {
+            if (_cameraManager?.ShapeLayer is not null)
+                _cameraManager.ShapeLayer.Position = new CGPoint(this.Layer.Bounds.GetMidX(), this.Layer.Bounds.GetMidY());
+
+            if (_cameraManager?.PreviewLayer is not null)
+                _cameraManager.PreviewLayer.Frame = this.Layer.Bounds;
+        }
+
+        UpdateOrientation();
     }
 }

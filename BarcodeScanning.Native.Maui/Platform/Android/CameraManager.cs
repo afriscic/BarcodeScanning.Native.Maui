@@ -71,12 +71,9 @@ internal class CameraManager : IDisposable
         };
         _cameraController.SetEnabledUseCases(CameraController.ImageAnalysis);
         _cameraController.ZoomState?.ObserveForever(_cameraStateObserver);
-        _cameraController.InitializationFuture?.AddListener(new Java.Lang.Runnable(() => 
-        {
-            _currentCameraInfo?.CameraState?.RemoveObserver(_cameraStateObserver);
-            _currentCameraInfo = _cameraController.CameraInfo;
-            _currentCameraInfo?.CameraState?.ObserveForever(_cameraStateObserver);
-        }), ContextCompat.GetMainExecutor(_context));
+        _cameraController.InitializationFuture?.AddListener(
+            new Java.Lang.Runnable(CameraStateObserverUpdate), ContextCompat.GetMainExecutor(_context)
+        );
 
         _previewView = new PreviewView(_context)
         {
@@ -115,7 +112,8 @@ internal class CameraManager : IDisposable
 
     internal void Start()
     {
-        if (_previewView?.GetChildAt(0) is TextureView textureView) {
+        if (_previewView?.GetChildAt(0) is TextureView textureView) 
+        {
             var canvas = textureView.LockCanvas();
             if (canvas is not null) 
             {
@@ -139,8 +137,6 @@ internal class CameraManager : IDisposable
 
         _cameraController?.BindToLifecycle(_lifecycleOwner);
         _previewView?.Controller = _cameraController;
-
-        UpdateZoomFactor();
     }
 
     internal void Stop()
@@ -167,6 +163,9 @@ internal class CameraManager : IDisposable
             _cameraController?.CameraSelector = CameraSelector.DefaultFrontCamera;
         else
             _cameraController?.CameraSelector = CameraSelector.DefaultBackCamera;
+
+        if (_currentCameraInfo is not null && _currentCameraInfo.CameraSelector != _cameraController?.CameraInfo?.CameraSelector)
+            CameraStateObserverUpdate();
     }
 
     internal void UpdateCameraEnabled()
@@ -223,7 +222,16 @@ internal class CameraManager : IDisposable
                 factor = Math.Min(factor, _cameraView.MaxZoomFactor);
 
                 if (factor != _cameraView.CurrentZoomFactor)
-                    _cameraController?.SetZoomRatio(factor);
+                {
+                    try
+                    {
+                        _cameraController?.SetZoomRatio(factor);
+                    }
+                    catch (Exception)
+                    {
+                        _cameraView.RequestZoomFactor = 0;
+                    }
+                }
             }
         }
     }
@@ -237,6 +245,13 @@ internal class CameraManager : IDisposable
             return new CoordinateTransform(imageOutputTransform, previewOutputTransform);
         else
             return null;
+    }
+
+    private void CameraStateObserverUpdate()
+    {
+        _currentCameraInfo?.CameraState?.RemoveObserver(_cameraStateObserver);
+        _currentCameraInfo = _cameraController?.CameraInfo;
+        _currentCameraInfo?.CameraState?.ObserveForever(_cameraStateObserver);
     }
 
     private async void MainDisplayInfoChangedAsync(object? sender, DisplayInfoChangedEventArgs e)

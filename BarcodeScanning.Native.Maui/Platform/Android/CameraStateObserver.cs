@@ -26,6 +26,9 @@ internal class CameraStateObserver : Java.Lang.Object, IObserver
         if (value is CameraState cameraState)
         {
             _cameraManager?.OpenedCameraState = cameraState;
+
+            if (cameraState.GetType() == CameraState.Type.Open)
+                _cameraManager?.UpdateZoomFactor();
         }
     }
 }

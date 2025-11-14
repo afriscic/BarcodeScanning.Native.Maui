@@ -101,6 +101,8 @@ internal class CameraManager : IDisposable
             UpdateSymbologies();
             UpdateTorch();
             UpdateZoomFactor();
+
+            _barcodeView?.UpdateOrientation();
         });
     }
 
