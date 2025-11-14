@@ -337,6 +337,34 @@ public partial class CameraView : View
         set => SetValue(DeviceSwitchZoomFactorProperty, value);
     }
 
+    public static readonly BindableProperty CameraPreviewScaleYProperty = BindableProperty.Create(nameof(CameraPreviewScaleY)
+        , typeof(float)
+        , typeof(CameraView)
+        , 1f
+        , BindingMode.OneWayToSource);
+    /// <summary>
+    /// /// Returns the scale factor of the camera preview in Y axis.
+    /// </summary>
+    public float CameraPreviewScaleY
+    {
+        get => (float)GetValue(CameraPreviewScaleYProperty);
+        set => SetValue(CameraPreviewScaleYProperty, value);
+    }
+
+    public static readonly BindableProperty CameraPreviewScaleXProperty = BindableProperty.Create(nameof(CameraPreviewScaleX)
+        , typeof(float)
+        , typeof(CameraView)
+        , 1f
+        , BindingMode.OneWayToSource);
+    /// <summary>
+    /// /// Returns the scale factor of the camera preview in X axis.
+    /// </summary>
+    public float CameraPreviewScaleX
+    {
+        get => (float)GetValue(CameraPreviewScaleXProperty);
+        set => SetValue(CameraPreviewScaleXProperty, value);
+    }
+
     public event EventHandler<OnDetectionFinishedEventArg>? OnDetectionFinished;
     public event EventHandler<OnImageCapturedEventArg>? OnImageCaptured;
 
