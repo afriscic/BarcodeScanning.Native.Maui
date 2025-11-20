@@ -23,7 +23,7 @@
                       x:Name="Graphics"
                       InputTransparent="True"/>
         
-        <Grid ColumnDefinitions="*, *, *, *, *, *" AbsoluteLayout.LayoutFlags="All" AbsoluteLayout.LayoutBounds="0,0,1,0.1">
+        <Grid ColumnDefinitions="*, *, *, *, *, *, *" AbsoluteLayout.LayoutFlags="All" AbsoluteLayout.LayoutBounds="0,0,1,0.1">
             <Picker x:Name="Quality" Grid.Column="3" BackgroundColor="Transparent"  WidthRequest="45" HeightRequest="45" SelectedIndexChanged="Quality_SelectedIndexChanged"/>
 
             <Button x:Name="BackButton" Grid.Column="0" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="BackButton_Clicked"/>
@@ -32,6 +32,7 @@
             <Button Text="Q" Grid.Column="3" WidthRequest="50" HeightRequest="50" CornerRadius="25" InputTransparent="True"/>
             <Button Text="V" Grid.Column="4" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="VibrateButton_Clicked"/>
             <Button Text="P" Grid.Column="5" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="PauseButton_Clicked"/>
+            <Button Text="R" Grid.Column="6" WidthRequest="50" HeightRequest="50" CornerRadius="25" Clicked="RotateButton_Clicked" />
         </Grid>
     </AbsoluteLayout>
 
