@@ -23,7 +23,6 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 
     private readonly CameraManager? _cameraManager;
     private readonly HashSet<BarcodeResult> _barcodeResults;
-    private readonly Lock _resultsLock;
 
     private IBarcodeScanner? _barcodeScanner;
     private CoordinateTransform? _coordinateTransform;
@@ -35,9 +34,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
     internal BarcodeAnalyzer(CameraManager? cameraManager)
     {
         _cameraManager = cameraManager;
-
         _barcodeResults = [];
-        _resultsLock = new();
     }
 
     internal void UpdateSymbologies()
@@ -57,7 +54,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             ArgumentNullException.ThrowIfNull(_cameraManager?.PreviewView);
             ArgumentNullException.ThrowIfNull(_barcodeScanner);
 
-            if (_cameraManager.CameraView.PauseScanning)
+            if (_cameraManager.CameraView.PauseScanning || _cameraManager.CameraView.ProcessingDetected)
                 return;
 
             if (_updateCoordinateTransform)
@@ -86,20 +83,16 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
                 invertedResult = TasksClass.Await(invertedTask);
             }
 
-            lock (_resultsLock)
-            {
-                _barcodeResults.Clear();
-                AddResultToSet(result);
-                AddResultToSet(invertedResult);
+            _barcodeResults.Clear();
+            
+            AddResultToSet(result);
+            AddResultToSet(invertedResult);
 
-                _cameraManager.CameraView.DetectionFinished(_barcodeResults);
-            }
-
+            PlatformImage? image = null;
             if (_cameraManager.CameraView.ForceFrameCapture || (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0))
-            {
-                var image = new PlatformImage(proxy.ToBitmap());
-                _cameraManager.CameraView.TriggerOnImageCaptured(image);
-            }
+                image = new PlatformImage(proxy.ToBitmap());
+            
+            _cameraManager.CameraView.DetectionFinished(_barcodeResults, image);
 
             result?.Dispose();
             invertedResult?.Dispose();

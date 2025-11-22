@@ -340,6 +340,8 @@ public partial class CameraView : View
     public event EventHandler<OnDetectionFinishedEventArg>? OnDetectionFinished;
     public event EventHandler<OnImageCapturedEventArg>? OnImageCaptured;
 
+    internal bool ProcessingDetected { get; set; }
+
     private readonly HashSet<BarcodeResult> _pooledResults;
     private readonly Lock _poolingLock;
     private readonly Timer _poolingTimer; 
@@ -355,7 +357,7 @@ public partial class CameraView : View
         _poolingTimer.Elapsed += PoolingTimer_Elapsed;
     }
 
-    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults)
+    internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults, PlatformImage? image = null)
     {
         if (PoolingInterval > 0)
         {
@@ -380,7 +382,8 @@ public partial class CameraView : View
             if (_poolingTimer.Enabled)
                 _poolingTimer.Stop();
 
-            TriggerOnDetectionFinished(barCodeResults);
+            ProcessingDetected = true;
+            TriggerOnDetectionFinished(barCodeResults, image);
         }
     }
 
@@ -393,34 +396,39 @@ public partial class CameraView : View
         }
     }
 
-    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults)
+    private void TriggerOnDetectionFinished(HashSet<BarcodeResult> barcodeResults, PlatformImage? image = null)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            if (PauseScanning)
-                return;
-            
-            if (VibrationOnDetected && barcodeResults.Count > 0 && Vibration.Default.IsSupported)
-                Vibration.Default.Vibrate();
+            try
+            {
+                if (PauseScanning)
+                    return;
+                
+                if (VibrationOnDetected && barcodeResults.Count > 0 && Vibration.Default.IsSupported)
+                    Vibration.Default.Vibrate();
 
-            OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barcodeResults });
-            if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) ?? false)
-                OnDetectionFinishedCommand?.Execute(barcodeResults);
-        });
-    }
-    
-    internal void TriggerOnImageCaptured(PlatformImage image)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            CaptureNextFrame = false;
+                OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barcodeResults });
+                if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) ?? false)
+                    OnDetectionFinishedCommand?.Execute(barcodeResults);
 
-            if (PauseScanning)
-                return;
+                if (image is not null)
+                {
+                    CaptureNextFrame = false;
 
-            OnImageCaptured?.Invoke(this, new OnImageCapturedEventArg { Image = image });
-            if (OnImageCapturedCommand?.CanExecute(image) ?? false)
-                OnImageCapturedCommand?.Execute(image);
+                    OnImageCaptured?.Invoke(this, new OnImageCapturedEventArg { Image = image });
+                    if (OnImageCapturedCommand?.CanExecute(image) ?? false)
+                        OnImageCapturedCommand?.Execute(image);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
+            finally
+            {
+                ProcessingDetected = false;
+            }
         });
     }
 }

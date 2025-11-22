@@ -71,9 +71,7 @@ internal class CameraManager : IDisposable
         };
         _cameraController.SetEnabledUseCases(CameraController.ImageAnalysis);
         _cameraController.ZoomState?.ObserveForever(_cameraStateObserver);
-        _cameraController.InitializationFuture?.AddListener(
-            new Java.Lang.Runnable(CameraStateObserverUpdate), ContextCompat.GetMainExecutor(_context)
-        );
+        _cameraController.InitializationFuture?.AddListener(new Java.Lang.Runnable(CameraStateObserverUpdate), ContextCompat.GetMainExecutor(_context));
 
         _previewView = new PreviewView(_context)
         {
@@ -117,7 +115,7 @@ internal class CameraManager : IDisposable
             var canvas = textureView.LockCanvas();
             if (canvas is not null) 
             {
-                canvas.DrawColor(Color.Black);
+                canvas.DrawColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
                 textureView.UnlockCanvasAndPost(canvas);
             }
         }

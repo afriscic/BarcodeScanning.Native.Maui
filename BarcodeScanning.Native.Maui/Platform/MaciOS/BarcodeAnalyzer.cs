@@ -13,7 +13,6 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
 {
     private readonly CameraManager? _cameraManager;
     private readonly HashSet<BarcodeResult> _barcodeResults;
-    private readonly Lock _resultsLock;
     private readonly VNDetectBarcodesRequest _detectBarcodesRequest;
     private readonly VNSequenceRequestHandler _sequenceRequestHandler;
 
@@ -24,9 +23,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
     internal BarcodeAnalyzer(CameraManager? cameraManager)
     {
         _cameraManager = cameraManager;
-
         _barcodeResults = [];
-        _resultsLock = new();
         _detectBarcodesRequest = new VNDetectBarcodesRequest((request, error) => 
         {
             if (error is null)
@@ -50,47 +47,43 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             ArgumentNullException.ThrowIfNull(_cameraManager?.PreviewLayer);
             ArgumentNullException.ThrowIfNull(sampleBuffer);
 
-            if (_cameraManager.CameraView.PauseScanning)
+            if (_cameraManager.CameraView.PauseScanning || _cameraManager.CameraView.ProcessingDetected)
                 return;
 
             _sequenceRequestHandler.Perform([_detectBarcodesRequest], sampleBuffer, out _);
 
-            lock (_resultsLock)
+            if (_cameraManager.CameraView.AimMode)
             {
-                _barcodeResults.Clear();
+                _previewCenter.X = _cameraManager.PreviewLayer.Bounds.GetMidX();
+                _previewCenter.Y = _cameraManager.PreviewLayer.Bounds.GetMidY();
+            }
+            if (_cameraManager.CameraView.ViewfinderMode)
+            {
+                _previewRect.Width = _cameraManager.PreviewLayer.Bounds.Width;
+                _previewRect.Height = _cameraManager.PreviewLayer.Bounds.Height;
+            }
+            
+            _barcodeResults.Clear();
 
-                if (_cameraManager.CameraView.AimMode)
-                {
-                    _previewCenter.X = _cameraManager.PreviewLayer.Bounds.GetMidX();
-                    _previewCenter.Y = _cameraManager.PreviewLayer.Bounds.GetMidY();
-                }
-                if (_cameraManager.CameraView.ViewfinderMode)
-                {
-                    _previewRect.Width = _cameraManager.PreviewLayer.Bounds.Width;
-                    _previewRect.Height = _cameraManager.PreviewLayer.Bounds.Height;
-                }
-                
-                foreach (var barcode in _result)
-                    {
-                        if (string.IsNullOrEmpty(barcode.PayloadStringValue))
-                            continue;
+            foreach (var barcode in _result)
+            {
+                if (string.IsNullOrEmpty(barcode.PayloadStringValue))
+                    continue;
 
-                        var barcodeResult = barcode.AsBarcodeResult(_cameraManager.PreviewLayer);
+                var barcodeResult = barcode.AsBarcodeResult(_cameraManager.PreviewLayer);
 
-                        if (_cameraManager.CameraView.AimMode &&
-                            !barcodeResult.PreviewBoundingBox.Contains(_previewCenter))
-                            continue;
+                if (_cameraManager.CameraView.AimMode &&
+                    !barcodeResult.PreviewBoundingBox.Contains(_previewCenter))
+                    continue;
 
-                        if (_cameraManager.CameraView.ViewfinderMode &&
-                            !_previewRect.Contains(barcodeResult.PreviewBoundingBox))
-                            continue;
+                if (_cameraManager.CameraView.ViewfinderMode &&
+                    !_previewRect.Contains(barcodeResult.PreviewBoundingBox))
+                    continue;
 
-                        _barcodeResults.Add(barcodeResult);
-                    }
-
-                _cameraManager.CameraView.DetectionFinished(_barcodeResults);
+                _barcodeResults.Add(barcodeResult);
             }
 
+            PlatformImage? image = null;
             if (_cameraManager.CameraView.ForceFrameCapture || (_cameraManager.CameraView.CaptureNextFrame && _barcodeResults.Count > 0))
             {
                 using var imageBuffer = sampleBuffer.GetImageBuffer();
@@ -100,12 +93,11 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
                     using var cIContext = new CIContext();
                     using var cGImage = cIContext.CreateCGImage(cIImage, cIImage.Extent);
                     if (cGImage is not null)
-                    {
-                        var image = new PlatformImage(new UIImage(cGImage));
-                        _cameraManager.CameraView.TriggerOnImageCaptured(image);
-                    }
+                        image = new PlatformImage(new UIImage(cGImage));
                 }
             }
+
+            _cameraManager.CameraView.DetectionFinished(_barcodeResults, image);
         }
         catch (Exception ex)
         {
