@@ -47,8 +47,8 @@ public static partial class Extensions
         // Ensure the the bounding box has the right size
         var scale = Math.Max(scaleX, scaleY);
 
-        var offsetX = (float)((previewSize.Width - (imageSize.Width * scale)) / 2);
-        var offsetY = (float)((previewSize.Height - (imageSize.Height * scale)) / 2);
+        var offsetX = (float)((previewSize.Width - (imageSize.Width * scale)) * 0.5);
+        var offsetY = (float)((previewSize.Height - (imageSize.Height * scale)) * 0.5);
 
         return new RectF(
             (imageRect.X * scale) + offsetX,

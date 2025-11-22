@@ -1,11 +1,53 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using Windows.Graphics.Imaging;
+using ZXingCpp;
 
 namespace BarcodeScanning;
 
 public static partial class Methods
 {
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(byte[] imageArray)
+        => await ScanFromStreamAsync(new MemoryStream(imageArray));
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromImageAsync(FileResult file)
+        => await ScanFromStreamAsync(await file.OpenReadAsync());
+    public static async Task<IReadOnlySet<BarcodeResult>> ScanFromStreamAsync(Stream stream)
+    {
+        var decoder = await BitmapDecoder.CreateAsync(stream.AsRandomAccessStream());
+        using var softwareBitmap = await decoder.GetSoftwareBitmapAsync();
+
+        var bitmap = softwareBitmap.BitmapPixelFormat switch
+        {
+            BitmapPixelFormat.Bgra8 => softwareBitmap,
+            BitmapPixelFormat.Rgba8 => softwareBitmap,
+            BitmapPixelFormat.Gray8 => softwareBitmap,
+            _ => SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Gray8)
+        };
+
+        using var buffer = bitmap.LockBuffer(BitmapBufferAccessMode.Read);
+        using var reference = buffer.CreateReference();
+
+        var barcodeReader = new BarcodeReader
+        {
+            TryHarder = true,
+            TryRotate = true,
+            TryDownscale = true,
+            TryInvert = true,
+            IsPure = false,
+            TextMode = TextMode.Plain
+        };
+
+        Barcode[] barcodes = [];
+        unsafe
+        {
+            ((IMemoryBufferByteAccess)reference).GetBuffer(out byte* dataInBytes, out _);
+            var iv = new ImageView(new IntPtr(dataInBytes), bitmap.PixelWidth, bitmap.PixelHeight, ConvertImageFormats(bitmap.BitmapPixelFormat));
+            barcodes = barcodeReader.From(iv);
+        }
+
+        return barcodes.Select(s => s.AsBarcodeResult()).ToHashSet();
+    }
+
     internal static ZXingCpp.BarcodeFormats ConvertBarcodeFormats(BarcodeFormats barcodeFormats)
     {
         var formats = ZXingCpp.BarcodeFormats.None;
@@ -90,6 +132,18 @@ public static partial class Methods
             BitmapPixelFormat.Rgba8 => ZXingCpp.ImageFormat.RGBA,
             BitmapPixelFormat.Gray8 => ZXingCpp.ImageFormat.Lum,
             _ => ZXingCpp.ImageFormat.None
+        };
+    }
+
+    internal static int TargetHeight(CaptureQuality? captureQuality)
+    {
+        return captureQuality switch
+        {
+            CaptureQuality.Low => 480,
+            CaptureQuality.Medium => 720,
+            CaptureQuality.High => 1080,
+            CaptureQuality.Highest =>  2160,
+            _ => 720
         };
     }
 
