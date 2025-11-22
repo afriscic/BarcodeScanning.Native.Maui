@@ -9,7 +9,6 @@ using Windows.Media.Devices;
 using Windows.Media.MediaProperties;
 using ZXingCpp;
 
-
 using Border = Microsoft.UI.Xaml.Controls.Border;
 using SolidColorBrush = Microsoft.UI.Xaml.Media.SolidColorBrush;
 
@@ -22,14 +21,16 @@ internal partial class CameraManager : IDisposable
     private readonly BarcodeView _barcodeView;
     private readonly Border _aimDot;
     private readonly CameraView _cameraView;
-    private readonly BarcodeReader _barcodeReader; 
+    private readonly BarcodeReader _barcodeReader;
     private MediaCapture _mediaCapture;
     private MediaFrameSourceInfo _selectedCamera;
     private MediaFrameReader _mediaFrameReader;
     private readonly MediaPlayerElement _mediaPlayerElement;
     private readonly SemaphoreSlim _mediaCaptureLock;
+    private Size _previewSize;
+    private readonly object _previewSizeLock = new object();
 
-    private const int aimDotRadius = 20;
+    private const int AimDotRadius = 20;
 
     internal CameraManager(CameraView cameraView)
     {
@@ -37,22 +38,24 @@ internal partial class CameraManager : IDisposable
         _mediaCaptureLock = new SemaphoreSlim(1);
 
         _barcodeView = new BarcodeView();
-        
+
         _mediaPlayerElement = new MediaPlayerElement()
         {
             HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
             VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center,
             Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill
         };
+
         _aimDot = new Border()
         {
             Background = new SolidColorBrush(Windows.UI.Color.FromArgb(156, 255, 0, 0)),
             HorizontalAlignment = Microsoft.UI.Xaml.HorizontalAlignment.Center,
             VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment.Center,
-            Width = aimDotRadius,
-            Height = aimDotRadius,
-            CornerRadius = new Microsoft.UI.Xaml.CornerRadius(aimDotRadius / 2)
+            Width = AimDotRadius,
+            Height = AimDotRadius,
+            CornerRadius = new Microsoft.UI.Xaml.CornerRadius(AimDotRadius / 2)
         };
+
         _barcodeReader = new BarcodeReader
         {
             TryHarder = true,
@@ -63,166 +66,25 @@ internal partial class CameraManager : IDisposable
         };
 
         _mediaPlayerElement.Tapped += _mediaPlayerElement_Tapped;
+        _mediaPlayerElement.SizeChanged += (s, e) => _mediaPlayerElement_SizeChanged();
 
         _barcodeView.Children.Add(_mediaPlayerElement);
     }
 
-    private async void _mediaPlayerElement_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
-    {
-        if (!_cameraView?.TapToFocusEnabled ?? true)
-            return;
+    internal void Start() => MainThread.BeginInvokeOnMainThread(async () => await StartInternalAsync());
 
-        var regionsOfInterestControl = _mediaCapture?.VideoDeviceController?.RegionsOfInterestControl;
-        if (regionsOfInterestControl is null || !regionsOfInterestControl.AutoFocusSupported || regionsOfInterestControl.MaxRegions < 1)
-            return;
-
-        var focusControl = _mediaCapture?.VideoDeviceController?.FocusControl;
-        if (focusControl is null || !focusControl.Supported)
-            return;
-
-        var tapPosition = e.GetPosition(_mediaPlayerElement);
-        var x = tapPosition.X / _mediaPlayerElement.ActualWidth;
-        var y = tapPosition.Y / _mediaPlayerElement.ActualHeight;
-
-        x = Math.Max(0, Math.Min(x, 1));
-        y = Math.Max(0, Math.Min(y, 1));
-
-        var regionOfInterest = new RegionOfInterest
-        {
-            AutoFocusEnabled = regionsOfInterestControl.AutoFocusSupported,
-            BoundsNormalized = true,
-            Bounds = new Windows.Foundation.Rect(x - 0.05, y - 0.05, 0.1, 0.1),
-            Type = RegionOfInterestType.Unknown,
-            Weight = 100
-        };
-
-        var focusRange = focusControl.SupportedFocusRanges.Contains(AutoFocusRange.FullRange) ? AutoFocusRange.FullRange : focusControl.SupportedFocusRanges.FirstOrDefault();
-        var focusMode = focusControl.SupportedFocusModes.Contains(FocusMode.Continuous) ? FocusMode.Continuous : focusControl.SupportedFocusModes.FirstOrDefault();
-
-        var focusSettings = new FocusSettings
-        {
-            AutoFocusRange = focusRange,
-            Mode = focusMode,
-            DisableDriverFallback = true,
-            WaitForFocus = false
-        };
-
-        focusControl.Configure(focusSettings);
-        await regionsOfInterestControl.ClearRegionsAsync();
-        await regionsOfInterestControl.SetRegionsAsync([regionOfInterest]);
-        await focusControl.FocusAsync();
-    }
-
-    internal void Start()
-    {
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            if (_selectedCamera is null)
-                UpdateCamera();
-
-            if (_mediaCapture is null)
-            {
-                _mediaCapture = new MediaCapture();
-                await _mediaCapture.InitializeAsync(new MediaCaptureInitializationSettings()
-                {
-                    SourceGroup = await MediaFrameSourceGroup.FromIdAsync(_selectedCamera.Id),
-                    SharingMode = MediaCaptureSharingMode.ExclusiveControl,
-                    StreamingCaptureMode = StreamingCaptureMode.Video,
-                    MemoryPreference = MediaCaptureMemoryPreference.Cpu
-                });
-
-                UpdateResolution();
-
-                _mediaPlayerElement.Source = MediaSource.CreateFromMediaFrameSource(_mediaCapture?.FrameSources[_selectedCamera?.Id]);
-                var mediaPlayer = _mediaPlayerElement.MediaPlayer;
-
-            }
-
-            if (_mediaFrameReader is null)
-            {
-                _mediaFrameReader = await _mediaCapture.CreateFrameReaderAsync(_mediaCapture?.FrameSources[_selectedCamera?.Id], MediaEncodingSubtypes.Bgra8);
-                _mediaFrameReader.AcquisitionMode = MediaFrameReaderAcquisitionMode.Realtime;
-                _mediaFrameReader.FrameArrived += _mediaFrameReader_FrameArrived;
-            }
-
-            await _mediaFrameReader.StartAsync();
-        });
-    }
-
-    private void _mediaFrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
-    {
-
-        if (sender is not null)
-        {
-            _barcodeReader.TryInvert = _cameraView?.ForceInverted ?? false;
-
-            using var frame = sender.TryAcquireLatestFrame();
-            using var videoBitmap = frame?.VideoMediaFrame?.SoftwareBitmap;
-
-            if (videoBitmap is not null && _cameraView is not null)
-            {
-                if (_cameraView.CaptureNextFrame)
-                    CaptureImage(videoBitmap);
-                else
-                    PerformBarcodeDetection(videoBitmap);
-            }
-        }
-    }
-
-    internal void Stop()
-    {
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            if (_mediaCapture?.VideoDeviceController?.TorchControl?.Enabled ?? false)
-            {
-                _mediaCapture.VideoDeviceController.TorchControl.Enabled = false;
-
-                if (_cameraView is not null)
-                    _cameraView.TorchOn = false;
-            }
-
-            if (_mediaFrameReader is not null)
-                await _mediaFrameReader.StopAsync();
-        });
-    }
+    internal void Stop() => MainThread.BeginInvokeOnMainThread(async () => await StopInternalAsync());
 
     internal void UpdateCamera()
     {
         MainThread.BeginInvokeOnMainThread(async () =>
         {
-            var mediaFrameSourceGroups = await MediaFrameSourceGroup.FindAllAsync();
-
-            MediaFrameSourceInfo newCamera = null;
-            if (_cameraView?.CameraFacing == CameraFacing.Front)
-            {
-                newCamera = mediaFrameSourceGroups
-                    .SelectMany(s => s.SourceInfos)
-                    .Where(w => w.MediaStreamType == MediaStreamType.VideoRecord && w.SourceKind == MediaFrameSourceKind.Color && w.DeviceInformation?.EnclosureLocation?.Panel == Windows.Devices.Enumeration.Panel.Front)
-                    .FirstOrDefault();
-            }
-            newCamera ??= mediaFrameSourceGroups
-                .SelectMany(s => s.SourceInfos)
-                .Where(w => w.MediaStreamType == MediaStreamType.VideoRecord && w.SourceKind == MediaFrameSourceKind.Color)
-                .FirstOrDefault();
-
-            if (newCamera is null)
+            var newCamera = await GetCameraAsync();
+            if (newCamera is null || _selectedCamera?.Id == newCamera.Id)
                 return;
 
-            if (_selectedCamera != newCamera && _mediaCapture is not null)
-            {
-                if (_mediaCapture.CameraStreamState == CameraStreamState.Streaming)
-                    await _mediaFrameReader?.StopAsync();
-
-                //_mediaFrameReader.FrameArrived -= ColorFrameReader_FrameArrived;
-                _mediaFrameReader.Dispose();
-                _mediaCapture.Dispose();
-
-                _selectedCamera = newCamera;
-
-                ReportZoomFactors();
-
-                Start();
-            }
+            await StopInternalAsync();
+            await StartInternalAsync();
         });
     }
 
@@ -238,9 +100,6 @@ internal partial class CameraManager : IDisposable
         {
             var factor = _cameraView?.RequestZoomFactor ?? -1;
 
-            if (factor < 0)
-                return;
-
             factor = Math.Max(factor, _cameraView?.MinZoomFactor ?? -1);
             factor = Math.Min(factor, _cameraView?.MaxZoomFactor ?? -1);
 
@@ -255,15 +114,18 @@ internal partial class CameraManager : IDisposable
     {
         if (_selectedCamera is null)
             return;
-        //TODO resolution translator & fallback
+
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             var frameSource = _mediaCapture?.FrameSources[_selectedCamera?.Id];
+            if (frameSource is null)
+                return;
+
             var preferredFormat = frameSource.SupportedFormats
                 .Where(w => w.VideoFormat.Width == 1280 && w.VideoFormat.Height == 720)
                 .OrderByDescending(o => (decimal)o.FrameRate.Numerator / (decimal)o.FrameRate.Denominator)
                 .FirstOrDefault();
-            
+
             if (preferredFormat is not null)
                 await frameSource.SetFormatAsync(preferredFormat);
         });
@@ -291,18 +153,245 @@ internal partial class CameraManager : IDisposable
             _barcodeView?.Children.Remove(_aimDot);
     }
 
+    internal void UpdateBackgroundColor() { }
+
     internal void UpdateTapToFocus() { }
 
     internal void UpdateVibration() { }
+
+    private async Task StartInternalAsync()
+    {
+        await _mediaCaptureLock.WaitAsync();
+
+        try
+        {
+            if (_mediaCapture is not null)
+                return;
+
+            var camera = await GetCameraAsync();
+            if (camera is null)
+                return;
+
+            _selectedCamera = camera;
+
+            await InitializeMediaCaptureAsync();
+            _mediaPlayerElement.Source = MediaSource.CreateFromMediaFrameSource(_mediaCapture.FrameSources[_selectedCamera.Id]);
+            _mediaPlayerElement.MediaPlayer.Play();
+            await InitializeFrameReaderAsync();
+
+            _mediaPlayerElement_SizeChanged();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to start camera: {ex.Message}");
+        }
+        finally
+        {
+            _mediaCaptureLock.Release();
+        }
+    }
+
+    private async Task StopInternalAsync()
+    {
+        await _mediaCaptureLock.WaitAsync();
+
+        try
+        {
+            if (_mediaCapture is null)
+                return;
+
+            await DisableTorchIfNeededAsync();
+            await CleanupFrameReaderAsync();
+            CleanupMediaCapture();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to stop camera: {ex.Message}");
+        }
+        finally
+        {
+            _mediaCaptureLock.Release();
+        }
+    }
+
+    private async Task InitializeMediaCaptureAsync()
+    {
+        _mediaCapture = new MediaCapture();
+
+        await _mediaCapture.InitializeAsync(new MediaCaptureInitializationSettings()
+        {
+            SourceGroup = _selectedCamera.SourceGroup,
+            SharingMode = MediaCaptureSharingMode.ExclusiveControl,
+            StreamingCaptureMode = StreamingCaptureMode.Video,
+            MemoryPreference = MediaCaptureMemoryPreference.Cpu
+        });
+
+        UpdateResolution();
+        ReportZoomFactors();
+    }
+
+    private async Task InitializeFrameReaderAsync()
+    {
+        _mediaFrameReader = await _mediaCapture.CreateFrameReaderAsync(
+            _mediaCapture.FrameSources[_selectedCamera.Id],
+            MediaEncodingSubtypes.Bgra8);
+
+        _mediaFrameReader.AcquisitionMode = MediaFrameReaderAcquisitionMode.Realtime;
+        _mediaFrameReader.FrameArrived += _mediaFrameReader_FrameArrived;
+        await _mediaFrameReader.StartAsync();
+    }
+
+    private async Task DisableTorchIfNeededAsync()
+    {
+        if (_mediaCapture?.VideoDeviceController?.TorchControl?.Supported ?? false && (_mediaCapture.VideoDeviceController?.TorchControl?.Enabled ?? false))
+        {
+            _mediaCapture.VideoDeviceController.TorchControl.Enabled = false;
+            if (_cameraView is not null)
+                _cameraView.TorchOn = false;
+        }
+    }
+
+    private async Task CleanupFrameReaderAsync()
+    {
+        if (_mediaFrameReader is not null)
+        {
+            await _mediaFrameReader.StopAsync();
+            _mediaFrameReader.FrameArrived -= _mediaFrameReader_FrameArrived;
+            _mediaFrameReader.Dispose();
+            _mediaFrameReader = null;
+        }
+    }
+
+    private void CleanupMediaCapture()
+    {
+        _mediaCapture?.Dispose();
+        _mediaCapture = null;
+        _selectedCamera = null;
+    }
+
+    private void _mediaFrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
+    {
+        if (sender is null)
+            return;
+
+        _barcodeReader.TryInvert = _cameraView?.ForceInverted ?? false;
+
+        using var frame = sender.TryAcquireLatestFrame();
+        using var softwareBitmap = frame?.VideoMediaFrame?.SoftwareBitmap;
+
+        if (softwareBitmap is not null && _cameraView is not null)
+        {
+            if (_cameraView.CaptureNextFrame)
+                CaptureImage(softwareBitmap);
+            else
+                PerformBarcodeDetection(softwareBitmap);
+        }
+    }
+
+    private async Task<MediaFrameSourceInfo> GetCameraAsync()
+    {
+        var mediaFrameSourceGroups = await MediaFrameSourceGroup.FindAllAsync();
+        var preferredPanel = _cameraView?.CameraFacing == CameraFacing.Front
+            ? Windows.Devices.Enumeration.Panel.Front
+            : Windows.Devices.Enumeration.Panel.Back;
+
+        return FindCameraByPanel(mediaFrameSourceGroups, preferredPanel)
+            ?? FindFirstAvailableCamera(mediaFrameSourceGroups);
+    }
+
+    private static MediaFrameSourceInfo FindCameraByPanel(
+        IEnumerable<MediaFrameSourceGroup> groups,
+        Windows.Devices.Enumeration.Panel panel)
+    {
+        return groups
+            .SelectMany(g => g.SourceInfos)
+            .FirstOrDefault(s => s.MediaStreamType == MediaStreamType.VideoRecord &&
+                                 s.SourceKind == MediaFrameSourceKind.Color &&
+                                 s.DeviceInformation?.EnclosureLocation?.Panel == panel);
+    }
+
+    private static MediaFrameSourceInfo FindFirstAvailableCamera(IEnumerable<MediaFrameSourceGroup> groups)
+    {
+        return groups
+            .SelectMany(g => g.SourceInfos)
+            .FirstOrDefault(s => s.MediaStreamType == MediaStreamType.VideoRecord &&
+                                 s.SourceKind == MediaFrameSourceKind.Color);
+    }
 
     private void ReportZoomFactors()
     {
         if (_cameraView is not null && (_mediaCapture?.VideoDeviceController?.ZoomControl?.Supported ?? false))
         {
-            _cameraView.CurrentZoomFactor = _mediaCapture.VideoDeviceController.ZoomControl.Value;
-            _cameraView.MinZoomFactor = _mediaCapture.VideoDeviceController.ZoomControl.Min;
-            _cameraView.MaxZoomFactor = _mediaCapture.VideoDeviceController.ZoomControl.Max;
+            var zoomControl = _mediaCapture.VideoDeviceController.ZoomControl;
+            _cameraView.CurrentZoomFactor = zoomControl.Value;
+            _cameraView.MinZoomFactor = zoomControl.Min;
+            _cameraView.MaxZoomFactor = zoomControl.Max;
         }
+    }
+
+    private void _mediaPlayerElement_SizeChanged()
+    {
+        if (_mediaPlayerElement?.DispatcherQueue is null)
+            return;
+
+        _mediaPlayerElement.DispatcherQueue.TryEnqueue(() =>
+        {
+            lock (_previewSizeLock)
+            {
+                _previewSize = new Size(_mediaPlayerElement.ActualWidth, _mediaPlayerElement.ActualHeight);
+            }
+        });
+    }
+
+    private async void _mediaPlayerElement_Tapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        if (!(_cameraView?.TapToFocusEnabled ?? false))
+            return;
+
+        var regionsOfInterestControl = _mediaCapture?.VideoDeviceController?.RegionsOfInterestControl;
+        if (regionsOfInterestControl is not null && regionsOfInterestControl.AutoFocusSupported && regionsOfInterestControl.MaxRegions >= 1)
+            return;
+
+        var focusControl = _mediaCapture?.VideoDeviceController?.FocusControl;
+        if (focusControl is not null && focusControl.Supported)
+            return;
+
+        var tapPosition = e.GetPosition(_mediaPlayerElement);
+        var x = tapPosition.X / _mediaPlayerElement.ActualWidth;
+        var y = tapPosition.Y / _mediaPlayerElement.ActualHeight;
+
+        var normalizedX = Math.Max(0, Math.Min(x, 1));
+        var normalizedY = Math.Max(0, Math.Min(y, 1));
+
+        var regionOfInterest = new RegionOfInterest
+        {
+            AutoFocusEnabled = regionsOfInterestControl.AutoFocusSupported,
+            BoundsNormalized = true,
+            Bounds = new Windows.Foundation.Rect(x - 0.05, y - 0.05, 0.1, 0.1),
+            Type = RegionOfInterestType.Unknown,
+            Weight = 100
+        };
+
+        var focusRange = focusControl.SupportedFocusRanges.Contains(AutoFocusRange.FullRange)
+            ? AutoFocusRange.FullRange
+            : focusControl.SupportedFocusRanges.FirstOrDefault();
+
+        var focusMode = focusControl.SupportedFocusModes.Contains(FocusMode.Continuous)
+            ? FocusMode.Continuous
+            : focusControl.SupportedFocusModes.FirstOrDefault();
+
+        var focusSettings = new FocusSettings
+        {
+            AutoFocusRange = focusRange,
+            Mode = focusMode,
+            DisableDriverFallback = true,
+            WaitForFocus = false
+        };
+
+        focusControl.Configure(focusSettings);
+        await regionsOfInterestControl.ClearRegionsAsync();
+        await regionsOfInterestControl.SetRegionsAsync([regionOfInterest]);
+        await focusControl.FocusAsync();
     }
 
     private void CaptureImage(SoftwareBitmap bitmap)
@@ -318,7 +407,7 @@ internal partial class CameraManager : IDisposable
         using var buffer = bitmap.LockBuffer(BitmapBufferAccessMode.Read);
         using var reference = buffer.CreateReference();
 
-        List<Barcode> barcodes = [];
+        Barcode[] barcodes = [];
         unsafe
         {
             ((Methods.IMemoryBufferByteAccess)reference).GetBuffer(out byte* dataInBytes, out uint capacity);
@@ -326,9 +415,20 @@ internal partial class CameraManager : IDisposable
             barcodes = _barcodeReader.From(iv);
         }
 
-        foreach (var barcode in barcodes)
+        if (barcodes.Length > 0)
         {
-            barcode.Position.
+            var imageSize = new Size(bitmap.PixelWidth, bitmap.PixelHeight);
+            Size previewSize;
+            lock (_previewSizeLock)
+            {
+                previewSize = _previewSize;
+            }
+
+            var barcodeResults = barcodes
+                .Select(b => b.AsBarcodeResult(imageSize, previewSize))
+                .ToHashSet();
+
+            _cameraView.DetectionFinished(barcodeResults);
         }
     }
 
@@ -342,7 +442,7 @@ internal partial class CameraManager : IDisposable
     {
         if (disposing)
         {
-
+            Stop();
         }
     }
 }
