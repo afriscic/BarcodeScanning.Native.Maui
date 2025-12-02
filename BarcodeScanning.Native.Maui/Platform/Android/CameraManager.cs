@@ -204,9 +204,8 @@ internal class CameraManager : IDisposable
 
     internal void UpdateVibration()
     {
-        if ((_cameraView?.VibrationOnDetected ?? false) &&
-            !Permissions.IsDeclaredInManifest(Manifest.Permission.Vibrate))
-            _cameraView.VibrationOnDetected = false;
+        if ((_cameraView?.VibrationOnDetected ?? false) && !Permissions.IsDeclaredInManifest(Manifest.Permission.Vibrate))
+            MainThread.BeginInvokeOnMainThread(() => _cameraView.VibrationOnDetected = false);
     }
 
     internal void UpdateZoomFactor()
@@ -227,7 +226,7 @@ internal class CameraManager : IDisposable
                     }
                     catch (Exception)
                     {
-                        _cameraView.RequestZoomFactor = 0;
+                        MainThread.BeginInvokeOnMainThread(() => _cameraView.RequestZoomFactor = 0);
                     }
                 }
             }

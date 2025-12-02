@@ -143,10 +143,7 @@ internal partial class CameraManager : IAsyncDisposable
 
             var torchControl = _mediaCapture?.VideoDeviceController?.TorchControl;
             if (torchControl is not null && torchControl.Supported && torchControl.Enabled)
-            {
                 torchControl.Enabled = false;
-                _cameraView?.TorchOn = false;
-            }
 
             if (_mediaFrameReader is not null)
             {
@@ -384,10 +381,13 @@ internal partial class CameraManager : IAsyncDisposable
     {
         if (_cameraView is not null && (_mediaCapture?.VideoDeviceController?.ZoomControl?.Supported ?? false))
         {
-            var zoomControl = _mediaCapture.VideoDeviceController.ZoomControl;
-            _cameraView.CurrentZoomFactor = zoomControl.Value;
-            _cameraView.MinZoomFactor = zoomControl.Min;
-            _cameraView.MaxZoomFactor = zoomControl.Max;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                var zoomControl = _mediaCapture.VideoDeviceController.ZoomControl;
+                _cameraView.CurrentZoomFactor = zoomControl.Value;
+                _cameraView.MinZoomFactor = zoomControl.Min;
+                _cameraView.MaxZoomFactor = zoomControl.Max;
+            });
         }
     }
 

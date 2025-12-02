@@ -228,21 +228,27 @@ internal class CameraManager : IDisposable
     {
         if (_cameraView is not null && _captureDevice is not null)
         {
-            _cameraView.MinZoomFactor = (float)_captureDevice.MinAvailableVideoZoomFactor;
-            _cameraView.MaxZoomFactor = (float)_captureDevice.MaxAvailableVideoZoomFactor;
-            _cameraView.DeviceSwitchZoomFactor = _captureDevice.VirtualDeviceSwitchOverVideoZoomFactors?.Select(s => (float)s).ToArray() ?? [];
+            var minZoom = (float)_captureDevice.MinAvailableVideoZoomFactor;
+            var maxZoom = (float)_captureDevice.MaxAvailableVideoZoomFactor;
+            var switchZooms = _captureDevice.VirtualDeviceSwitchOverVideoZoomFactors?.Select(s => (float)s).ToArray() ?? [];
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _cameraView.MinZoomFactor = minZoom;
+                _cameraView.MaxZoomFactor = maxZoom;
+                _cameraView.DeviceSwitchZoomFactor = switchZooms;
+            });
 
             var factor = _cameraView.RequestZoomFactor;
-
             if (factor > 0)
             {
-                factor = Math.Max(factor, _cameraView.MinZoomFactor);
-                factor = Math.Min(factor, _cameraView.MaxZoomFactor);
+                factor = Math.Max(factor, minZoom);
+                factor = Math.Min(factor, maxZoom);
 
                 DeviceLock(() =>
                 {
                     _captureDevice.VideoZoomFactor = factor;
-                    _cameraView.CurrentZoomFactor = factor;
+                    MainThread.BeginInvokeOnMainThread(() => _cameraView.CurrentZoomFactor = factor);
                 });
             }
         }
