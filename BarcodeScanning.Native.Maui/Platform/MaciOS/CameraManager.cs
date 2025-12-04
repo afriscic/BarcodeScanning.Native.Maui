@@ -254,6 +254,11 @@ internal class CameraManager : IDisposable
         }
     }
 
+    internal void UpdatePreviewScale()
+    {
+        // not supported yet
+    }
+
     private void DeviceLock(Action action)
     {
         DispatchQueue.MainQueue.DispatchBarrierAsync(() =>
