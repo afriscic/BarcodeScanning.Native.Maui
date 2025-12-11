@@ -20,14 +20,11 @@ jobs:
       - name: Install MAUI workload
         run: dotnet workload install maui
 
-      - name: Restore
-        run: dotnet restore BarcodeScanning.Native.Maui/BarcodeScanning.Native.Maui.csproj
-
       - name: Build
         run: dotnet build BarcodeScanning.Native.Maui/BarcodeScanning.Native.Maui.csproj -c Release
 
       - name: Pack
-        run: dotnet pack BarcodeScanning.Native.Maui/BarcodeScanning.Native.Maui.csproj -c Release -o "${{ github.workspace }}/nupkgs"
+        run: dotnet pack --no-build BarcodeScanning.Native.Maui/BarcodeScanning.Native.Maui.csproj -c Release -o "${{ github.workspace }}/nupkgs"
 
       - name: Publish to NuGet
         run: |

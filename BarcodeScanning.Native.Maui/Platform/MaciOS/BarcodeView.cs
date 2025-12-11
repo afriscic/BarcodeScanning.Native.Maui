@@ -15,29 +15,32 @@ public class BarcodeView : UIView
 
     internal void UpdateOrientation()
     {
-        var connection = _cameraManager?.PreviewLayer?.Connection;
-        if (connection is null)
-            return;
+        MainThread.BeginInvokeOnMainThread( () =>
+        {
+            var connection = _cameraManager?.PreviewLayer?.Connection;
+            if (connection is null)
+                return;
 
-        if (OperatingSystem.IsIOSVersionAtLeast(17))
-        {
-            var angle = _cameraManager?.RotationCoordinator?.VideoRotationAngleForHorizonLevelPreview ?? 0;
-            if (connection.IsVideoRotationAngleSupported(angle))
-                connection.VideoRotationAngle = angle;
-        }
-        else
-        {
-            if (connection.SupportsVideoOrientation)
+            if (OperatingSystem.IsIOSVersionAtLeast(17))
             {
-                connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
-                {
-                    UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
-                    UIInterfaceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
-                    UIInterfaceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeRight,
-                    _ => AVCaptureVideoOrientation.Portrait
-                };
+                var angle = _cameraManager?.RotationCoordinator?.VideoRotationAngleForHorizonLevelPreview ?? 0;
+                if (connection.IsVideoRotationAngleSupported(angle))
+                    connection.VideoRotationAngle = angle;
             }
-        }
+            else
+            {
+                if (connection.SupportsVideoOrientation)
+                {
+                    connection.VideoOrientation = this.Window?.WindowScene?.InterfaceOrientation switch
+                    {
+                        UIInterfaceOrientation.LandscapeLeft => AVCaptureVideoOrientation.LandscapeLeft,
+                        UIInterfaceOrientation.PortraitUpsideDown => AVCaptureVideoOrientation.PortraitUpsideDown,
+                        UIInterfaceOrientation.LandscapeRight => AVCaptureVideoOrientation.LandscapeRight,
+                        _ => AVCaptureVideoOrientation.Portrait
+                    };
+                }
+            }
+        });
     }
 
     public override void LayoutSubviews()

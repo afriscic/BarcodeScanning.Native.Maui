@@ -344,7 +344,9 @@ public partial class CameraView : View
 
     private readonly HashSet<BarcodeResult> _pooledResults;
     private readonly Lock _poolingLock;
-    private readonly Timer _poolingTimer; 
+    private readonly Timer _poolingTimer;
+
+    private PlatformImage? lastImage;
 
     public CameraView()
     {
@@ -375,6 +377,12 @@ public partial class CameraView : View
                     _pooledResults.Remove(result);
                     _pooledResults.Add(result);
                 }
+
+                if (image is not null)
+                {
+                    lastImage?.Dispose();
+                    lastImage = image;
+                }
             }
         }
         else
@@ -392,7 +400,7 @@ public partial class CameraView : View
         lock (_poolingLock)
         {
             if (PoolingInterval > 0)
-                TriggerOnDetectionFinished(_pooledResults);
+                TriggerOnDetectionFinished(_pooledResults, lastImage);
         }
     }
 
