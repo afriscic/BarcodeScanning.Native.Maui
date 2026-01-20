@@ -144,7 +144,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateAimMode()
     {
-        if (_cameraView?.AimMode ?? false)
+        if (_cameraView?.AimMode == true)
             _relativeLayout?.AddView(_imageView);
         else
             _relativeLayout?.RemoveView(_imageView);
@@ -168,7 +168,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateCameraEnabled()
     {
-        if (_cameraView?.CameraEnabled ?? false)
+        if (_cameraView?.CameraEnabled == true)
             Start();
         else
             Stop();
@@ -204,7 +204,7 @@ internal class CameraManager : IDisposable
 
     internal void UpdateVibration()
     {
-        if ((_cameraView?.VibrationOnDetected ?? false) && !Permissions.IsDeclaredInManifest(Manifest.Permission.Vibrate))
+        if (_cameraView?.VibrationOnDetected == true && !Permissions.IsDeclaredInManifest(Manifest.Permission.Vibrate))
             MainThread.BeginInvokeOnMainThread(() => _cameraView.VibrationOnDetected = false);
     }
 

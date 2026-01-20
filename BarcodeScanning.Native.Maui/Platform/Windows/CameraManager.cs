@@ -175,7 +175,7 @@ internal partial class CameraManager : IAsyncDisposable
 
     internal void UpdateAimMode()
     {
-        if (_cameraView?.AimMode ?? false)
+        if (_cameraView?.AimMode == true)
             _barcodeView?.Children.Add(_aimDot);
         else
             _barcodeView?.Children.Remove(_aimDot);
@@ -199,7 +199,7 @@ internal partial class CameraManager : IAsyncDisposable
 
     internal async void UpdateCameraEnabled()
     {
-        if (_cameraView?.CameraEnabled ?? false)
+        if (_cameraView?.CameraEnabled == true)
             await Start();
         else
             await Stop();
@@ -220,7 +220,7 @@ internal partial class CameraManager : IAsyncDisposable
 
     internal void UpdateTorch()
     {
-        if (_mediaCapture?.VideoDeviceController?.TorchControl?.Supported ?? false)
+        if (_mediaCapture?.VideoDeviceController?.TorchControl?.Supported == true)
             _mediaCapture.VideoDeviceController.TorchControl.Enabled = _cameraView?.TorchOn ?? false;
     }
 
@@ -228,7 +228,7 @@ internal partial class CameraManager : IAsyncDisposable
 
     internal void UpdateZoomFactor()
     {
-        if (_mediaCapture?.VideoDeviceController?.ZoomControl?.Supported ?? false)
+        if (_mediaCapture?.VideoDeviceController?.ZoomControl?.Supported == true)
         {
             var factor = _cameraView?.RequestZoomFactor ?? -1;
 
@@ -314,7 +314,7 @@ internal partial class CameraManager : IAsyncDisposable
 
     private async void MediaPlayerElement_Tapped(object sender, TappedRoutedEventArgs e)
     {
-        if (!(_cameraView?.TapToFocusEnabled ?? false) || _mediaPlayerElement is null)
+        if (_mediaPlayerElement is null || _cameraView is null || !_cameraView.TapToFocusEnabled)
             return;
 
         var regionsOfInterestControl = _mediaCapture?.VideoDeviceController?.RegionsOfInterestControl;
@@ -322,7 +322,7 @@ internal partial class CameraManager : IAsyncDisposable
             return;
 
         var focusControl = _mediaCapture?.VideoDeviceController?.FocusControl;
-        if (!(focusControl?.Supported ?? false))
+        if (focusControl is null || !focusControl.Supported)
             return;
 
         var tapPosition = e.GetPosition(_mediaPlayerElement);
@@ -379,7 +379,7 @@ internal partial class CameraManager : IAsyncDisposable
 
     private void ReportZoomFactors()
     {
-        if (_cameraView is not null && (_mediaCapture?.VideoDeviceController?.ZoomControl?.Supported ?? false))
+        if (_cameraView is not null && _mediaCapture?.VideoDeviceController?.ZoomControl?.Supported == true)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {

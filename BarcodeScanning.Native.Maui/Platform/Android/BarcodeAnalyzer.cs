@@ -129,9 +129,9 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
 
             var barcodeResult = barcode.AsBarcodeResult(_coordinateTransform);
 
-            if ((_cameraManager?.CameraView?.AimMode ?? false) && !barcodeResult.PreviewBoundingBox.Contains(_previewViewCenter))
+            if (_cameraManager?.CameraView?.AimMode == true && !barcodeResult.PreviewBoundingBox.Contains(_previewViewCenter))
                 continue;
-            if ((_cameraManager?.CameraView?.ViewfinderMode ?? false) && !_previewViewRect.Contains(barcodeResult.PreviewBoundingBox))
+            if (_cameraManager?.CameraView?.ViewfinderMode == true && !_previewViewRect.Contains(barcodeResult.PreviewBoundingBox))
                 continue;
 
             _barcodeResults.Add(barcodeResult);

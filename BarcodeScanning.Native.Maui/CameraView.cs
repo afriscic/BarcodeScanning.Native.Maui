@@ -417,7 +417,7 @@ public partial class CameraView : View
                     Vibration.Default.Vibrate();
 
                 OnDetectionFinished?.Invoke(this, new OnDetectionFinishedEventArg { BarcodeResults = barcodeResults });
-                if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) ?? false)
+                if (OnDetectionFinishedCommand?.CanExecute(barcodeResults) == true)
                     OnDetectionFinishedCommand?.Execute(barcodeResults);
 
                 if (image is not null)
@@ -425,7 +425,7 @@ public partial class CameraView : View
                     CaptureNextFrame = false;
 
                     OnImageCaptured?.Invoke(this, new OnImageCapturedEventArg { Image = image });
-                    if (OnImageCapturedCommand?.CanExecute(image) ?? false)
+                    if (OnImageCapturedCommand?.CanExecute(image) == true)
                         OnImageCapturedCommand?.Execute(image);
                 }
             }

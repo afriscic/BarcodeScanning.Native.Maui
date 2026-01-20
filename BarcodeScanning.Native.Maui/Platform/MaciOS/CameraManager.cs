@@ -80,8 +80,10 @@ internal class CameraManager : IDisposable
 
         _dispatchQueue?.DispatchBarrierAsync(() =>
         {   
-            if (_captureSession?.Running ?? false)
+            if (_captureSession?.Running == true)
                 _captureSession?.StopRunning();
+
+            SetMultitaskingCameraAccess();
 
             _captureSession?.StartRunning();
 
@@ -94,7 +96,7 @@ internal class CameraManager : IDisposable
                 _captureSession?.AddOutput(_videoDataOutput);
                 _captureSession?.CommitConfiguration();
             }
-            
+
             _videoDataOutput?.SetSampleBufferDelegate(null, null);
             _videoDataOutput?.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
 
@@ -111,13 +113,13 @@ internal class CameraManager : IDisposable
         if (_captureDevice is not null && _captureDevice.TorchActive)
             DeviceLock(() => _captureDevice.TorchMode = AVCaptureTorchMode.Off);
 
-        if (_captureSession?.Running ?? false)
-            _dispatchQueue?.DispatchBarrierSync(() => _captureSession?.StopRunning());
+        if (_captureSession?.Running == true)
+            _dispatchQueue?.DispatchBarrierAsync(() => _captureSession?.StopRunning());
     }
 
     internal void UpdateAimMode()
     {
-        if ((_cameraView?.AimMode ?? false) && _shapeLayer is not null)
+        if (_cameraView?.AimMode == true && _shapeLayer is not null)
             _barcodeView?.Layer?.AddSublayer(_shapeLayer);
         else
             _shapeLayer?.RemoveFromSuperLayer();
@@ -180,7 +182,7 @@ internal class CameraManager : IDisposable
     
     internal void UpdateCameraEnabled()
     {
-        if (_cameraView?.CameraEnabled ?? false)
+        if (_cameraView?.CameraEnabled == true)
             Start();
         else
             Stop();
@@ -207,7 +209,7 @@ internal class CameraManager : IDisposable
     {
         if (_captureDevice is not null && _captureDevice.HasTorch && _captureDevice.TorchAvailable)
         {
-            if (_cameraView?.TorchOn ?? false)
+            if (_cameraView?.TorchOn == true)
                 DeviceLock(() => 
                 {
                     if(_captureDevice.IsTorchModeSupported(AVCaptureTorchMode.On))
@@ -258,7 +260,7 @@ internal class CameraManager : IDisposable
     {
         DispatchQueue.MainQueue.DispatchBarrierAsync(() =>
         {
-            if (_captureDevice?.LockForConfiguration(out _) ?? false)
+            if (_captureDevice?.LockForConfiguration(out _) == true)
             {
                 try
                 {
@@ -278,9 +280,8 @@ internal class CameraManager : IDisposable
 
     private void FocusOnTap()
     {
-        if ((_cameraView?.TapToFocusEnabled ?? false) &&
-            _captureDevice is not null &&
-            _captureDevice.FocusPointOfInterestSupported &&
+        if (_cameraView?.TapToFocusEnabled == true &&
+            _captureDevice?.FocusPointOfInterestSupported == true &&
             _previewLayer is not null &&
             _uITapGestureRecognizer is not null)
         {
@@ -307,6 +308,23 @@ internal class CameraManager : IDisposable
                 _captureDevice.SubjectAreaChangeMonitoringEnabled = false;
             });
         }
+    }
+
+    private void SetMultitaskingCameraAccess()
+    {
+        if (OperatingSystem.IsMacCatalyst())
+            return;
+
+        #if IOS16_0_OR_GREATER
+        #pragma warning disable CA1416 // Validate platform compatibility
+            if (OperatingSystem.IsIOSVersionAtLeast(16) && _captureSession?.MultitaskingCameraAccessSupported == true)
+            {
+                _captureSession?.BeginConfiguration();
+                _captureSession?.MultitaskingCameraAccessEnabled = true;
+                _captureSession?.CommitConfiguration();
+            }
+        #pragma warning restore CA1416 // Validate platform compatibility
+        #endif
     }
 
     public void Dispose()
