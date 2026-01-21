@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<IsAotCompatible>true</IsAotCompatible>
 		<Nullable>enable</Nullable>
-		<Version>3.0.0</Version>
+		<Version>3.0.1</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -56,12 +56,6 @@
 		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.5.2.1" />
 
 		<PackageReference Include="Xamarin.AndroidX.Fragment.Ktx" Version="1.8.9.1" />
-		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.10.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.10.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.10.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState" Version="2.10.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.10.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.SavedState.SavedState.Ktx" Version="1.4.0.1" />
 
 		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\libInvertBytes.so" />
 		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\libInvertBytes.so" />
@@ -72,10 +66,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\README.md">
-			<Pack>True</Pack>
-			<PackagePath>\</PackagePath>
-		</None>
+		<None Include="BarcodeScanning.Native.Maui.targets" 
+			Pack="True" 
+			PackagePath="build;buildTransitive" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\README.md"
+			Pack="True"
+			PackagePath="\" />
 	</ItemGroup>
 
 </Project>

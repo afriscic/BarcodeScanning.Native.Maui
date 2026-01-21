@@ -1,0 +1,10 @@
+<Project>
+  <Target Name="RemoveConflictingComposeJvmLib" 
+          Condition="$(TargetFramework.Contains('-android'))"
+          AfterTargets="ResolvePackageAssets;ResolveAssemblyReferences">
+    <ItemGroup>      
+      <AndroidJavaLibrary Remove="@(AndroidJavaLibrary)" 
+          Condition="$([System.String]::new('%(AndroidJavaLibrary.Identity)').ToLower().Contains('runtime-annotation-jvm'))" />
+    </ItemGroup>
+  </Target>
+</Project>
