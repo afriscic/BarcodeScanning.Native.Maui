@@ -433,7 +433,7 @@ internal partial class CameraManager : IDisposable
         if (!disposing)
             return;
 
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        _ = Task.Run(async () =>
         {
             _mediaPlayerElement?.Tapped -= MediaPlayerElement_Tapped;
             _mediaPlayerElement?.SizeChanged -= MediaPlayerElement_SizeChanged;
