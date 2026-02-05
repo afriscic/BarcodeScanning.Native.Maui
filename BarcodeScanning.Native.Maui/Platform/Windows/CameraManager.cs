@@ -1,4 +1,5 @@
 ﻿using Microsoft.Graphics.Canvas;
+using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Graphics.Platform;
 using Microsoft.Maui.Platform;
 using Microsoft.UI.Xaml;
@@ -22,7 +23,7 @@ using VerticalAlignment = Microsoft.UI.Xaml.VerticalAlignment;
 
 namespace BarcodeScanning;
 
-internal partial class CameraManager : IAsyncDisposable
+internal partial class CameraManager : IDisposable
 {
     internal BarcodeView? BarcodeView { get => _barcodeView; }
 
@@ -421,19 +422,25 @@ internal partial class CameraManager : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        await DisposeAsyncCore();
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    protected virtual async ValueTask DisposeAsyncCore()
+    protected virtual void Dispose(bool disposing)
     {
-        _mediaPlayerElement?.Tapped -= MediaPlayerElement_Tapped;
-        _mediaPlayerElement?.SizeChanged -= MediaPlayerElement_SizeChanged;
+        if (!disposing)
+            return;
 
-        await Stop();
+        _ = MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            _mediaPlayerElement?.Tapped -= MediaPlayerElement_Tapped;
+            _mediaPlayerElement?.SizeChanged -= MediaPlayerElement_SizeChanged;
 
-        _mediaCaptureLock?.Dispose();
+            await Stop();
+
+            _mediaCaptureLock?.Dispose();
+        });
     }
 }

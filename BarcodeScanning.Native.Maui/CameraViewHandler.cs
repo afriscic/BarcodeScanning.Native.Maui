@@ -28,19 +28,9 @@ public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
     {
     }
 
-#if WINDOWS
-    protected override async void DisconnectHandler(BarcodeView barcodeView)
-    {
-        if (_cameraManager is not null)
-            await _cameraManager.DisposeAsync();
-
-        base.DisconnectHandler(barcodeView);
-    }
-#else
     protected override void DisconnectHandler(BarcodeView barcodeView)
     {
         _cameraManager?.Dispose();
         base.DisconnectHandler(barcodeView);
     }
-#endif
 }
