@@ -110,17 +110,20 @@ internal class CameraManager : IDisposable
 
     internal void Start()
     {
-        if (_previewView?.GetChildAt(0) is TextureView textureView) 
+        _previewView?.Controller = null;
+
+        for (int i = 0; i < _previewView?.ChildCount; i++)
         {
-            var canvas = textureView.LockCanvas();
-            if (canvas is not null) 
+            if (_previewView?.GetChildAt(i) is TextureView textureView) 
             {
-                canvas.DrawColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
-                textureView.UnlockCanvasAndPost(canvas);
+                var canvas = textureView.LockCanvas();
+                if (canvas is not null) 
+                {
+                    canvas.DrawColor(_cameraView?.BackgroundColor?.ToPlatform() ?? Color.Transparent);
+                    textureView.UnlockCanvasAndPost(canvas);
+                }
             }
         }
-
-        _previewView?.Controller = null;
 
         if (OpenedCameraState?.GetType() != CameraState.Type.Closed)
             _cameraController?.Unbind();
@@ -140,6 +143,9 @@ internal class CameraManager : IDisposable
     internal void Stop()
     {
         _cameraController?.Unbind();
+        
+        _currentCameraInfo?.CameraState?.RemoveObserver(_cameraStateObserver);
+        _currentCameraInfo = null;
     }
 
     internal void UpdateAimMode()
@@ -162,8 +168,7 @@ internal class CameraManager : IDisposable
         else
             _cameraController?.CameraSelector = CameraSelector.DefaultBackCamera;
 
-        if (_currentCameraInfo is not null && _currentCameraInfo.CameraSelector != _cameraController?.CameraInfo?.CameraSelector)
-            CameraStateObserverUpdate();
+        CameraStateObserverUpdate();
     }
 
     internal void UpdateCameraEnabled()
@@ -269,29 +274,29 @@ internal class CameraManager : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
-        {
-            Stop();
-
-            DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChangedAsync;
+        if (!disposing)
+            return;
             
-            _cameraController?.ZoomState?.RemoveObserver(_cameraStateObserver);
-            _currentCameraInfo?.CameraState?.RemoveObserver(_cameraStateObserver);
+        Stop();
 
-            _cameraController?.ClearImageAnalysisAnalyzer();
+        DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChangedAsync;
+        
+        _cameraController?.ZoomState?.RemoveObserver(_cameraStateObserver);
+        _currentCameraInfo?.CameraState?.RemoveObserver(_cameraStateObserver);
 
-            _barcodeView?.RemoveAllViews();
-            _relativeLayout?.RemoveAllViews();
-            
-            _barcodeView?.Dispose();
-            _relativeLayout?.Dispose();
-            _imageView?.Dispose();
-            _previewView?.Dispose();
-            _cameraController?.Dispose();
-            _currentCameraInfo?.Dispose();
-            _cameraStateObserver?.Dispose();
-            _barcodeAnalyzer?.Dispose();
-            _analyzerExecutor?.Dispose();
-        }
+        _cameraController?.ClearImageAnalysisAnalyzer();
+
+        _barcodeView?.RemoveAllViews();
+        _relativeLayout?.RemoveAllViews();
+        
+        _barcodeView?.Dispose();
+        _relativeLayout?.Dispose();
+        _imageView?.Dispose();
+        _previewView?.Dispose();
+        _cameraController?.Dispose();
+        _currentCameraInfo?.Dispose();
+        _cameraStateObserver?.Dispose();
+        _barcodeAnalyzer?.Dispose();
+        _analyzerExecutor?.Dispose();
     }
 }

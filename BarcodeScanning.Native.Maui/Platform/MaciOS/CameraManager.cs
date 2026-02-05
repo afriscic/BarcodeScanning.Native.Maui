@@ -335,34 +335,40 @@ internal class CameraManager : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
+        if (!disposing)
+            return;
+
+        Stop();
+
+        _dispatchQueue?.DispatchBarrierAsync(() =>
         {
-            Stop();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (_subjectAreaChangedNotificaion is not null)
+                    NSNotificationCenter.DefaultCenter.RemoveObserver(_subjectAreaChangedNotificaion);
+                if (_uITapGestureRecognizer is not null)
+                    _barcodeView?.RemoveGestureRecognizer(_uITapGestureRecognizer);
 
-            if (_subjectAreaChangedNotificaion is not null)
-                NSNotificationCenter.DefaultCenter.RemoveObserver(_subjectAreaChangedNotificaion);
-            if (_uITapGestureRecognizer is not null)
-                _barcodeView?.RemoveGestureRecognizer(_uITapGestureRecognizer);
+                _videoDataOutput?.SetSampleBufferDelegate(null, null);
+                
+                _previewLayer?.RemoveFromSuperLayer();
+                _shapeLayer?.RemoveFromSuperLayer();
 
-            _videoDataOutput?.SetSampleBufferDelegate(null, null);
-            
-            _previewLayer?.RemoveFromSuperLayer();
-            _shapeLayer?.RemoveFromSuperLayer();
+                _barcodeView?.Dispose();
+                _previewLayer?.Dispose();
+                _shapeLayer?.Dispose();
 
-            _barcodeView?.Dispose();
-            _previewLayer?.Dispose();
-            _shapeLayer?.Dispose();
+                _captureSession?.Dispose();
+                _videoDataOutput?.Dispose();
+                _captureInput?.Dispose();
 
-            _captureSession?.Dispose();
-            _videoDataOutput?.Dispose();
-            _captureInput?.Dispose();
-
-            _barcodeAnalyzer?.Dispose();
-            _captureDevice?.Dispose();
-            _rotationCoordinator?.Dispose();
-            _uITapGestureRecognizer?.Dispose();
-            _subjectAreaChangedNotificaion?.Dispose();
-            _dispatchQueue?.Dispose();
-        }
+                _barcodeAnalyzer?.Dispose();
+                _captureDevice?.Dispose();
+                _rotationCoordinator?.Dispose();
+                _uITapGestureRecognizer?.Dispose();
+                _subjectAreaChangedNotificaion?.Dispose();
+                _dispatchQueue?.Dispose();
+            });
+        });
     }
 }
