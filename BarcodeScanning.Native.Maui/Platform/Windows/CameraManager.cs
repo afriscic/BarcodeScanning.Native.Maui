@@ -1,5 +1,4 @@
 ﻿using Microsoft.Graphics.Canvas;
-using Microsoft.Maui.Controls.Compatibility;
 using Microsoft.Maui.Graphics.Platform;
 using Microsoft.Maui.Platform;
 using Microsoft.UI.Xaml;

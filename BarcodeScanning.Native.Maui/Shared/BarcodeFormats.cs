@@ -24,6 +24,7 @@ public enum BarcodeFormats
     GS1DataBar = 1 << 16,
     MaxiCode = 1 << 17,
     DXFilmEdge = 1 << 18,
+    ISBN = 1 << 19,
 
     All = ~0
 }

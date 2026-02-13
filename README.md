@@ -96,7 +96,6 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 #### iOS/macOS
 1D: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, GS1 DataBar, ITF, UPC-A, UPC-E; 2D: Aztec, Data Matrix, MicroPDF417, MicroQR, PDF417, QR Code
 #### Windows
-1D: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, ITF, UPC-A, UPC-E, DataBar; 2D: Aztec, Data Matrix, PDF417, QR Code, MicroQR
-
+1D: Codabar, Code 39, PZN, Code 93, Code 128, EAN-8, EAN-5, EAN-2, EAN-13, EAN/UPC, ITF, ITF-14, UPC-A, UPC-E, ISBN, DataBar, DataBar Omni, DataBar Stacked, DataBar Stacked Omni, DataBar Limited, DataBar Expanded, DataBar Expanded Stacked, DX Film Edge; 2D: Aztec, Aztec Code, Aztec Rune, Data Matrix, PDF417, Compact PDF417, Micro PDF417, QR Code, QR Code Model 1, QR Code Model 2, MicroQR, rMQR, MaxiCode
 ## Bindable properties
 A list of bindable properties with descriptions can be found in [CameraView.cs](https://github.com/afriscic/BarcodeScanning.Native.Maui/blob/master/BarcodeScanning.Native.Maui/CameraView.cs) source file.
