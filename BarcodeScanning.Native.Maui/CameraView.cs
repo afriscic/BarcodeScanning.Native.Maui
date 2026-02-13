@@ -2,8 +2,6 @@
 using System.Windows.Input;
 using Microsoft.Maui.Graphics.Platform;
 
-using Timer = System.Timers.Timer;
-
 namespace BarcodeScanning;
 
 public partial class CameraView : View
@@ -159,8 +157,8 @@ public partial class CameraView : View
         , BindingMode.TwoWay
         , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).CaptureQuality = (CaptureQuality)newValue);
     /// <summary>
-    /// Set the capture quality for the image analysys.
-    /// Reccomended and default value is Medium.
+    /// Set the capture quality for the image analysis.
+    /// Recommended and default value is Medium.
     /// Use highest values for more precision or lower for fast scanning.
     /// </summary>
     public CaptureQuality CaptureQuality
@@ -315,7 +313,7 @@ public partial class CameraView : View
         , -1f
         , BindingMode.OneWayToSource);
     /// <summary>
-    /// /// Returns maximum zoom factor for current camera.
+    /// Returns maximum zoom factor for current camera.
     /// </summary>
     public float MaxZoomFactor
     {
@@ -329,7 +327,7 @@ public partial class CameraView : View
         , Array.Empty<float>()
         , BindingMode.OneWayToSource);
     /// <summary>
-    /// /// Returns zoom factors that switch between camera lenses (iOS only).
+    /// Returns zoom factors that switch between camera lenses (iOS only).
     /// </summary>
     public float[] DeviceSwitchZoomFactor
     {
@@ -340,11 +338,11 @@ public partial class CameraView : View
     public event EventHandler<OnDetectionFinishedEventArg>? OnDetectionFinished;
     public event EventHandler<OnImageCapturedEventArg>? OnImageCaptured;
 
-    internal bool ProcessingDetected { get; set; }
+    internal bool ProcessingDetected { get; private set; }
+    internal IDispatcherTimer? PoolingTimer { get; private set; }
 
     private readonly HashSet<BarcodeResult> _pooledResults;
     private readonly Lock _poolingLock;
-    private readonly Timer _poolingTimer;
 
     private PlatformImage? lastImage;
 
@@ -352,11 +350,6 @@ public partial class CameraView : View
     {
         _pooledResults = [];
         _poolingLock = new();
-        _poolingTimer = new()
-        {
-            AutoReset = false
-        };
-        _poolingTimer.Elapsed += PoolingTimer_Elapsed;
     }
 
     internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults, PlatformImage? image = null)
@@ -365,11 +358,18 @@ public partial class CameraView : View
         {
             lock (_poolingLock)
             {
-                if (!_poolingTimer.Enabled)
+                if (PoolingTimer is null)
+                {
+                    PoolingTimer = Dispatcher.CreateTimer();
+                    PoolingTimer.IsRepeating = false;
+                    PoolingTimer.Tick += PoolingTimer_Elapsed;
+                }
+
+                if (!PoolingTimer.IsRunning)
                 {
                     _pooledResults.Clear();
-                    _poolingTimer.Interval = PoolingInterval;
-                    _poolingTimer.Start();
+                    PoolingTimer.Interval = TimeSpan.FromMilliseconds(PoolingInterval);
+                    PoolingTimer.Start();
                 }
 
                 foreach (var result in barCodeResults)
@@ -387,20 +387,27 @@ public partial class CameraView : View
         }
         else
         {
-            if (_poolingTimer.Enabled)
-                _poolingTimer.Stop();
+            if (PoolingTimer?.IsRunning == true)
+                PoolingTimer.Stop();
 
             ProcessingDetected = true;
             TriggerOnDetectionFinished(barCodeResults, image);
         }
     }
 
-    private void PoolingTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    private void PoolingTimer_Elapsed(object? sender, EventArgs e)
     {
-        lock (_poolingLock)
+        try
         {
-            if (PoolingInterval > 0)
-                TriggerOnDetectionFinished(_pooledResults, lastImage);
+            lock (_poolingLock)
+            {
+                if (PoolingInterval > 0)
+                    TriggerOnDetectionFinished(_pooledResults, lastImage);
+            }
+        }
+        catch (Exception)
+        {
+            StopTimer();
         }
     }
 
@@ -438,5 +445,18 @@ public partial class CameraView : View
                 ProcessingDetected = false;
             }
         });
+    }
+
+    internal void StopTimer()
+    {
+        try
+        {
+            PoolingTimer?.Stop();
+            PoolingTimer?.Tick -= PoolingTimer_Elapsed;
+            PoolingTimer = null;
+        }
+        catch (Exception)
+        {
+        }
     }
 }

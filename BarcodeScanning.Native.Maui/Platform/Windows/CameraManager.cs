@@ -247,6 +247,9 @@ internal partial class CameraManager : IDisposable
     {
         try
         {
+            if (_cameraView?.PauseScanning == true || _cameraView?.ProcessingDetected == true)
+                return;
+                
             using var frame = sender?.TryAcquireLatestFrame();
             using var softwareBitmap = frame?.VideoMediaFrame?.SoftwareBitmap;
 

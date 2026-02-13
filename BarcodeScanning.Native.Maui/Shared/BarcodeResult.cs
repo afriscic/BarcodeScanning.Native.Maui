@@ -15,36 +15,21 @@ public class BarcodeResult : IEquatable<BarcodeResult>
         if (other is null)
             return false;
 
-        if (!string.IsNullOrEmpty(this.RawValue))
-        {
-            if (this.RawValue == other.RawValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
-                return true;
-            else
-                return false;
-        }
-        else
-        {
-            if (this.DisplayValue == other.DisplayValue && this.ImageBoundingBox.IntersectsWith(other.ImageBoundingBox))
-                return true;
-            else
-                return false;
-        }
+        var value = !string.IsNullOrEmpty(RawValue) ? RawValue : DisplayValue;
+        var otherValue = !string.IsNullOrEmpty(other.RawValue) ? other.RawValue : other.DisplayValue;
 
+        return value == otherValue && ImageBoundingBox.IntersectsWith(other.ImageBoundingBox);
     }
     public override bool Equals(object? obj)
     {
-        if (obj is null)
-            return false;
-        else if (obj is not BarcodeResult barcode)
-            return false;
+        if (obj is BarcodeResult barcode)
+            return Equals(barcode);
         else
-            return base.Equals(barcode);
+            return false;
     }
     public override int GetHashCode()
     {
-        if (!string.IsNullOrEmpty(this.RawValue))
-            return this.RawValue.GetHashCode();
-        else
-            return this.DisplayValue.GetHashCode();
+        var value = !string.IsNullOrEmpty(RawValue) ? RawValue : DisplayValue;
+        return value.GetHashCode();
     }
 }

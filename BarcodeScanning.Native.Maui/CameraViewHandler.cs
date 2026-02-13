@@ -14,7 +14,7 @@ public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
         [nameof(CameraView.TorchOn)] = (handler, virtualView) => handler?._cameraManager?.UpdateTorch(),
         [nameof(CameraView.BackgroundColor)] = (handler, virtualView) => handler?._cameraManager?.UpdateBackgroundColor(),
         [nameof(CameraView.CameraEnabled)] = (handler, virtualView) => handler?._cameraManager?.UpdateCameraEnabled(),
-        [nameof(CameraView.AimMode)] = (handler, virtualView) => handler._cameraManager?.UpdateAimMode(),
+        [nameof(CameraView.AimMode)] = (handler, virtualView) => handler?._cameraManager?.UpdateAimMode(),
         [nameof(CameraView.TapToFocusEnabled)] = (handler, virtualView) => handler?._cameraManager?.UpdateTapToFocus(),
         [nameof(CameraView.RequestZoomFactor)] = (handler, virtualView) => handler?._cameraManager?.UpdateZoomFactor(),
         [nameof(CameraView.VibrationOnDetected)] = (handler, virtualView) => handler?._cameraManager?.UpdateVibration()
@@ -30,6 +30,7 @@ public partial class CameraViewHandler : ViewHandler<CameraView, BarcodeView>
 
     protected override void DisconnectHandler(BarcodeView barcodeView)
     {
+        VirtualView?.StopTimer();
         _cameraManager?.Dispose();
         base.DisconnectHandler(barcodeView);
     }

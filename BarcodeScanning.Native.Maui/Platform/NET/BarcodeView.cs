@@ -2,5 +2,5 @@
 
 public class BarcodeView : IDisposable
 {
-    public void Dispose() => throw new NotImplementedException();
+    public void Dispose() => throw new PlatformNotSupportedException();
 }
