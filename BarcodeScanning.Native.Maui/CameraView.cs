@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using Microsoft.Maui.Graphics.Platform;
 
 namespace BarcodeScanning;
@@ -405,8 +404,9 @@ public partial class CameraView : View
                     TriggerOnDetectionFinished(_pooledResults, lastImage);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine(ex);
             StopTimer();
         }
     }
@@ -438,7 +438,7 @@ public partial class CameraView : View
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
+                Console.WriteLine(ex);
             }
             finally
             {
@@ -455,8 +455,9 @@ public partial class CameraView : View
             PoolingTimer?.Tick -= PoolingTimer_Elapsed;
             PoolingTimer = null;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine(ex);
         }
     }
 }

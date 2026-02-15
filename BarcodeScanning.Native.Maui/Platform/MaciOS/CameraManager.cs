@@ -4,7 +4,6 @@ using CoreFoundation;
 using CoreGraphics;
 using Foundation;
 using Microsoft.Maui.Platform;
-using System.Diagnostics;
 using UIKit;
 
 namespace BarcodeScanning;
@@ -268,7 +267,7 @@ internal class CameraManager : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(ex);      
+                    Console.WriteLine(ex);      
                 }
                 finally
                 {

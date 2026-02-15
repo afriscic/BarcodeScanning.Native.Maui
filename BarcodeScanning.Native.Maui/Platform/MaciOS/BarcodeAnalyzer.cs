@@ -3,7 +3,6 @@ using CoreGraphics;
 using CoreImage;
 using CoreMedia;
 using Microsoft.Maui.Graphics.Platform;
-using System.Diagnostics;
 using UIKit;
 using Vision;
 
@@ -101,7 +100,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(ex);
+            Console.WriteLine(ex);
         }
         finally
         {
@@ -111,7 +110,7 @@ internal class BarcodeAnalyzer : AVCaptureVideoDataOutputSampleBufferDelegate
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
+                Console.WriteLine(ex);
                 MainThread.BeginInvokeOnMainThread(() => _cameraManager?.Start());
             }
         }

@@ -4,7 +4,6 @@ using Android.Runtime;
 using AndroidX.Camera.Core;
 using AndroidX.Camera.View.Transform;
 using Microsoft.Maui.Graphics.Platform;
-using System.Diagnostics;
 using Xamarin.Google.MLKit.Vision.Barcode.Common;
 using Xamarin.Google.MLKit.Vision.BarCode;
 using Xamarin.Google.MLKit.Vision.Common;
@@ -99,7 +98,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(ex);
+            Console.WriteLine(ex);
         }
         finally
         {
@@ -109,7 +108,7 @@ internal class BarcodeAnalyzer : Java.Lang.Object, ImageAnalysis.IAnalyzer
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
+                Console.WriteLine(ex);
                 MainThread.BeginInvokeOnMainThread(() => _cameraManager?.Start());
             }
         }
