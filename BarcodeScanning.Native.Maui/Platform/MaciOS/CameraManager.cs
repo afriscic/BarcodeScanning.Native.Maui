@@ -133,19 +133,22 @@ internal class CameraManager : IDisposable
     {
         _dispatchQueue?.DispatchBarrierAsync(() =>
         {
-            AVCaptureDevice? newDevice = null;
-            if (_cameraView?.CameraFacing == CameraFacing.Front)
-            {
-                newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
-            }
-            else
-            {
-                newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-                newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
-            }
-            newDevice ??= AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+			AVCaptureDevice? newDevice = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+			var facing = newDevice.Position == AVCaptureDevicePosition.Back ? CameraFacing.Back : CameraFacing.Front;
+			if (facing != _cameraView?.CameraFacing)
+			{
+				if (_cameraView?.CameraFacing != CameraFacing.Front)
+				{
+					newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Front);
+				}
+				else
+				{
+					newDevice = AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInTripleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+					newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualWideCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+					newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInDualCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+					newDevice ??= AVCaptureDevice.GetDefaultDevice(AVCaptureDeviceType.BuiltInWideAngleCamera, AVMediaTypes.Video, AVCaptureDevicePosition.Back);
+				}
+			}
 
             if (newDevice is null || _captureDevice == newDevice)
                 return;
