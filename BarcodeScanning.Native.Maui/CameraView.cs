@@ -5,6 +5,17 @@ namespace BarcodeScanning;
 
 public partial class CameraView : View
 {
+    public static readonly BindableProperty OnCameraPreviewReadyCommandProperty = BindableProperty.Create(nameof(OnCameraPreviewReadyCommand)
+        , typeof(ICommand)
+        , typeof(CameraView)
+        , null
+        , propertyChanged: (bindable, value, newValue) => ((CameraView)bindable).OnCameraPreviewReadyCommand = (ICommand)newValue);
+    public ICommand OnCameraPreviewReadyCommand
+    {
+        get => (ICommand)GetValue(OnCameraPreviewReadyCommandProperty);
+        set => SetValue(OnCameraPreviewReadyCommandProperty, value);
+    }
+
     public static readonly BindableProperty OnDetectionFinishedCommandProperty = BindableProperty.Create(nameof(OnDetectionFinishedCommand)
         , typeof(ICommand)
         , typeof(CameraView)
@@ -334,6 +345,7 @@ public partial class CameraView : View
         set => SetValue(DeviceSwitchZoomFactorProperty, value);
     }
 
+    public event EventHandler<OnCameraPreviewReadyEventArg>? OnCameraPreviewReady;
     public event EventHandler<OnDetectionFinishedEventArg>? OnDetectionFinished;
     public event EventHandler<OnImageCapturedEventArg>? OnImageCaptured;
 
@@ -344,11 +356,40 @@ public partial class CameraView : View
     private readonly Lock _poolingLock;
 
     private PlatformImage? lastImage;
+    private bool _cameraPreviewReadyFired;
 
     public CameraView()
     {
         _pooledResults = [];
         _poolingLock = new();
+    }
+
+    internal void ResetCameraPreviewReady()
+    {
+        _cameraPreviewReadyFired = false;
+    }
+
+    internal void TriggerCameraPreviewReady()
+    {
+        if (_cameraPreviewReadyFired)
+            return;
+
+        _cameraPreviewReadyFired = true;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                var args = new OnCameraPreviewReadyEventArg();
+                OnCameraPreviewReady?.Invoke(this, args);
+                if (OnCameraPreviewReadyCommand?.CanExecute(args) == true)
+                    OnCameraPreviewReadyCommand?.Execute(args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        });
     }
 
     internal void DetectionFinished(HashSet<BarcodeResult> barCodeResults, PlatformImage? image = null)
