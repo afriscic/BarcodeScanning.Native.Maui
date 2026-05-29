@@ -374,7 +374,8 @@ internal partial class CameraManager : IDisposable
 
         return mediaFrameSourceGroups
             .SelectMany(g => g.SourceInfos)
-            .Where(s => s.MediaStreamType == MediaStreamType.VideoRecord)
+            .Where(s => s.MediaStreamType == MediaStreamType.VideoRecord && 
+                        s.SourceKind == MediaFrameSourceKind.Color)
             .OrderByDescending(s => s.DeviceInformation?.EnclosureLocation?.Panel == preferredPanel)
             .FirstOrDefault();
     }
