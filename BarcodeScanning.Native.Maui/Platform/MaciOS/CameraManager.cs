@@ -23,6 +23,7 @@ internal class CameraManager : IDisposable
     private readonly BarcodeView? _barcodeView;
     private readonly CameraView? _cameraView;
     private readonly CAShapeLayer? _shapeLayer;
+    private readonly DispatchQueue? _cameraQueue;
     private readonly DispatchQueue? _dispatchQueue;
     private readonly NSObject? _subjectAreaChangedNotificaion;
     private readonly UITapGestureRecognizer? _uITapGestureRecognizer;
@@ -39,6 +40,7 @@ internal class CameraManager : IDisposable
         
         _captureSession = new AVCaptureSession();
         _barcodeAnalyzer = new BarcodeAnalyzer(this);
+        _cameraQueue = new("com.barcodescanning.maui.cameraQueue");
         _dispatchQueue = new DispatchQueue("com.barcodescanning.maui.sessionQueue", new DispatchQueue.Attributes()
         {
             QualityOfService = DispatchQualityOfService.UserInitiated
@@ -97,7 +99,7 @@ internal class CameraManager : IDisposable
             }
 
             _videoDataOutput?.SetSampleBufferDelegate(null, null);
-            _videoDataOutput?.SetSampleBufferDelegate(_barcodeAnalyzer, DispatchQueue.DefaultGlobalQueue);
+            _videoDataOutput?.SetSampleBufferDelegate(_barcodeAnalyzer, _cameraQueue);
 
             UpdateSymbologies();
             UpdateTorch();
@@ -367,6 +369,7 @@ internal class CameraManager : IDisposable
                 _uITapGestureRecognizer?.Dispose();
                 _subjectAreaChangedNotificaion?.Dispose();
                 _dispatchQueue?.Dispose();
+                _cameraQueue?.Dispose();
             });
         });
     }

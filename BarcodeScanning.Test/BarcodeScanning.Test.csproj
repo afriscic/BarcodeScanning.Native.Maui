@@ -34,6 +34,7 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+		<RestoreAdditionalProjectSources>$(MSBuildThisFileDirectory)..\artifacts\local-nuget\</RestoreAdditionalProjectSources>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -55,11 +56,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\BarcodeScanning.Native.Maui\BarcodeScanning.Native.Maui.csproj" />
-
+		<PackageReference Include="BarcodeScanning.Native.Maui" Version="3.0.4-local.2" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 	</ItemGroup>
-
-	<Import Project="..\BarcodeScanning.Native.Maui\BarcodeScanning.Native.Maui.targets" />
 </Project>

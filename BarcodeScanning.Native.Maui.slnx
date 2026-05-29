@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BarcodeScanning.Native.Maui/BarcodeScanning.Native.Maui.csproj" />
+  <Project Path="BarcodeScanning.Test/BarcodeScanning.Test.csproj">
+    <Deploy />
+  </Project>
+</Solution>
