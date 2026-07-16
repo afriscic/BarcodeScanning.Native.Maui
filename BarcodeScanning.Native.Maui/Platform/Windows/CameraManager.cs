@@ -40,6 +40,8 @@ internal partial class CameraManager : IDisposable
     private MediaFrameSourceInfo? _selectedCamera;
     private Rect _previewRect;
 
+    private bool _disposed;
+
     private const int AimDotRadius = 20;
 
     internal CameraManager(CameraView cameraView)
@@ -255,13 +257,14 @@ internal partial class CameraManager : IDisposable
             ArgumentNullException.ThrowIfNull(softwareBitmap);
             ArgumentNullException.ThrowIfNull(_barcodeReader);
 
-            var bitmap = softwareBitmap.BitmapPixelFormat switch
-            {
-                BitmapPixelFormat.Bgra8 => softwareBitmap,
-                BitmapPixelFormat.Rgba8 => softwareBitmap,
-                BitmapPixelFormat.Gray8 => softwareBitmap,
-                _ => SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Gray8)
-            };
+            using var barcodeBitmap = 
+                softwareBitmap.BitmapPixelFormat is
+                    BitmapPixelFormat.Bgra8 or
+                    BitmapPixelFormat.Rgba8 or
+                    BitmapPixelFormat.Gray8
+                        ? null
+                        : SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Gray8);
+            var bitmap = barcodeBitmap ?? softwareBitmap;
 
             using var buffer = bitmap.LockBuffer(BitmapBufferAccessMode.Read);
             using var reference = buffer.CreateReference();
@@ -295,11 +298,17 @@ internal partial class CameraManager : IDisposable
                 }
             }
 
+            using var convertedCaptureBitmap =
+                softwareBitmap.BitmapPixelFormat == BitmapPixelFormat.Bgra8
+                    ? null
+                    : SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8);
+            var captureBitmap = convertedCaptureBitmap ?? softwareBitmap;
+
             PlatformImage? image = null;
             if (_cameraView.ForceFrameCapture || (_cameraView.CaptureNextFrame && _barcodeResults.Count > 0))
             {
                 using var device = CanvasDevice.GetSharedDevice();
-                image = new PlatformImage(device, CanvasBitmap.CreateFromSoftwareBitmap(device, softwareBitmap));
+                image = new PlatformImage(device, CanvasBitmap.CreateFromSoftwareBitmap(device, captureBitmap));
             }
 
             _cameraView.DetectionFinished(_barcodeResults, image);
@@ -415,11 +424,11 @@ internal partial class CameraManager : IDisposable
 
     private void UpdatePreviewRect()
     {
-        if (_mediaPlayerElement is null)
-            return;
-
         lock (_previewRectLock)
-        {
+        {        
+            if (_mediaPlayerElement is null)
+                return;
+
             var size = new Size(_mediaPlayerElement.ActualWidth, _mediaPlayerElement.ActualHeight);
             _previewRect = new Rect(Point.Zero, size);
         }
@@ -435,15 +444,28 @@ internal partial class CameraManager : IDisposable
     {
         if (!disposing)
             return;
-
-        _ = Task.Run(async () =>
+        
+        MainThread.BeginInvokeOnMainThread(() =>
         {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
             _mediaPlayerElement?.Tapped -= MediaPlayerElement_Tapped;
             _mediaPlayerElement?.SizeChanged -= MediaPlayerElement_SizeChanged;
 
-            await Stop();
-
-            _mediaCaptureLock?.Dispose();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Stop();
+                }
+                finally
+                {
+                    _mediaCaptureLock?.Dispose();
+                }
+            });
         });
     }
 }
