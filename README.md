@@ -19,6 +19,10 @@ This library was inspired by existing MAUI barcode scanning libraries: [BarcodeS
 10. Android only - Ability to invert source image to scan natively unsupported inverted barcodes, but at a performance cost.
 11. From version 3.0.1 Windows support
 
+## Notice
+
+When building your Android app, you may encounter NU1608 and XA4301 warnings. These warnings occur because the library references newer Android package versions to improve camera performance and compatibility. In this case, they can be safely ignored.
+
 ## Usage
 1. Install [Nuget package](https://www.nuget.org/packages/BarcodeScanning.Native.Maui),
 2. Initialize the plugin in your `MauiProgram.cs`:

@@ -10,7 +10,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<IsAotCompatible>true</IsAotCompatible>
 		<Nullable>enable</Nullable>
-		<Version>3.0.5</Version>
+		<Version>3.0.6</Version>
 		<Authors>Alen Friščić</Authors>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -24,6 +24,10 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.1</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$(TargetFramework.StartsWith('net10.0-android')) Or $(TargetFrameworks.Contains('net10.0-android'))">
+		<NoWarn>$(NoWarn);NU1608</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android')) != true">
@@ -55,12 +59,6 @@
 		<PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.6.1.1" />
 		<PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.6.1.1" />
 		
-		<PackageReference Include="Xamarin.AndroidX.Collection.Ktx" Version="1.6.0.1" />
-		<PackageReference Include="Xamarin.AndroidX.Navigation.Common" Version="2.9.8.1" />
-		<PackageReference Include="Xamarin.AndroidX.Navigation.Fragment" Version="2.9.8.1" />
-		<PackageReference Include="Xamarin.AndroidX.Navigation.Runtime" Version="2.9.8.1" />
-		<PackageReference Include="Xamarin.AndroidX.Navigation.UI" Version="2.9.8.1" />
-
 		<AndroidNativeLibrary Include="**\Android\Native\arm64-v8a\libInvertBytes.so" />
 		<AndroidNativeLibrary Include="**\Android\Native\armeabi-v7a\libInvertBytes.so" />
 	</ItemGroup>

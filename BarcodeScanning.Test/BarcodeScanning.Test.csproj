@@ -56,7 +56,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BarcodeScanning.Native.Maui" Version="3.0.4-local.2" />
+		<ProjectReference Include="..\BarcodeScanning.Native.Maui\BarcodeScanning.Native.Maui.csproj" />
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
 	</ItemGroup>
