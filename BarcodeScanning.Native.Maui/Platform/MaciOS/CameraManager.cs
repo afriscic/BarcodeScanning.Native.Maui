@@ -76,7 +76,8 @@ internal class CameraManager : IDisposable
     }
 
     internal void Start()
-{ 
+    {
+        _cameraView?.ResetCameraPreviewReady();
         UpdateCamera();
 
         _dispatchQueue?.DispatchBarrierAsync(() =>
@@ -106,6 +107,8 @@ internal class CameraManager : IDisposable
             UpdateZoomFactor();
 
             _barcodeView?.UpdateOrientation();
+
+            _cameraView?.TriggerCameraPreviewReady();
         });
     }
 

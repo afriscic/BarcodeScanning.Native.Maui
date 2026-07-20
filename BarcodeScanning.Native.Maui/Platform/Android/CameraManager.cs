@@ -110,6 +110,7 @@ internal class CameraManager : IDisposable
 
     internal void Start()
     {
+        _cameraView?.ResetCameraPreviewReady();
         _previewView?.Controller = null;
 
         for (int i = 0; i < _previewView?.ChildCount; i++)
