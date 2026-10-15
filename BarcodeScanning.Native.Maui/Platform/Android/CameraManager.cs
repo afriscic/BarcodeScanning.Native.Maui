@@ -40,6 +40,8 @@ internal class CameraManager : IDisposable
     private readonly CameraStateObserver? _cameraStateObserver;
 
     private ICameraInfo? _currentCameraInfo;
+    private int _previewRefreshVersion;
+    private bool _disposed;
 
     private const int aimRadius = 25;
 
@@ -110,6 +112,10 @@ internal class CameraManager : IDisposable
 
     internal void Start()
     {
+        _previewRefreshVersion++;
+        if (!CanUseCamera())
+            return;
+
         _previewView?.Controller = null;
 
         for (int i = 0; i < _previewView?.ChildCount; i++)
@@ -142,6 +148,7 @@ internal class CameraManager : IDisposable
 
     internal void Stop()
     {
+        _previewRefreshVersion++;
         _cameraController?.Unbind();
         
         _currentCameraInfo?.CameraState?.RemoveObserver(_cameraStateObserver);
@@ -256,12 +263,25 @@ internal class CameraManager : IDisposable
         _currentCameraInfo?.CameraState?.ObserveForever(_cameraStateObserver);
     }
 
+    private bool CanUseCamera()
+    {
+        return !_disposed && _cameraView?.CameraEnabled == true &&
+            _previewView is not null && _previewView.Handle != IntPtr.Zero &&
+            _cameraController is not null && _cameraController.Handle != IntPtr.Zero;
+    }
+
     private async void MainDisplayInfoChangedAsync(object? sender, DisplayInfoChangedEventArgs e)
     {
-        if (OpenedCameraState?.GetType() == CameraState.Type.Open)
+        if (CanUseCamera() && OpenedCameraState?.GetType() == CameraState.Type.Open)
         {
+            var refreshVersion = ++_previewRefreshVersion;
             _previewView?.Controller = null;
             await Task.Delay(100);
+
+            // Stop, Start or Dispose may have invalidated this refresh while awaiting.
+            if (refreshVersion != _previewRefreshVersion || !CanUseCamera())
+                return;
+
             _previewView?.Controller = _cameraController;
         }
     }
@@ -274,9 +294,10 @@ internal class CameraManager : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposing)
+        if (!disposing || _disposed)
             return;
-            
+
+        _disposed = true;
         Stop();
 
         DeviceDisplay.Current.MainDisplayInfoChanged -= MainDisplayInfoChangedAsync;
